@@ -1,0 +1,6 @@
+[submodule "dependencies/external/glfw"]
+	path = dependencies/external/glfw
+	url = https://github.com/1Serg777/glfw.git
+[submodule "dependencies/external/glm"]
+	path = dependencies/external/glm
+	url = https://github.com/icaven/glm.git
