@@ -1,12 +1,11 @@
-#include <iostream>
+#include "Core/CmdLineArgs.h"
+#include "EmberLvlEditorApp.h"
 
-#include "Log.h"
-
-using namespace ember;
-
-int main()
-{
-    std::cout << "Hello Ember Level Editor!" << std::endl;
-    std::cin.get();
-    return 0;
+int main(int argc, char* argv[]) {
+    ember::CmdLineArgs cmdLineArgs{ argc, argv };
+    ember::EmberLvlEditorApp app{ cmdLineArgs };
+    app.Initialize();
+    int exitCode = app.Run();
+    app.Terminate();
+    return exitCode;
 }

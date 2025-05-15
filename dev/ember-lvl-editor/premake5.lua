@@ -1,4 +1,4 @@
-project ( "level-editor" )
+project ( "ember-lvl-editor" )
     kind       ( "ConsoleApp" )
     language   ( "C++" )
     cppdialect ( "C++17" )
@@ -7,8 +7,12 @@ project ( "level-editor" )
     objdir     ( build_path .. "/bin-int/" .. obj_dir )
 
     includedirs {
+        "%{include_dirs.glm}",
         "%{include_dirs.ember}",
         "%{include_dirs.ember_lvl_editor}",
+    }
+    libdirs {
+        build_path .. "/bin/" .. target_dir
     }
    
     links {

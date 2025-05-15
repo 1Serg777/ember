@@ -1,4 +1,4 @@
--- Common path (relative to the "dependencies.lua" file)
+-- Common paths
 build_path        = "%{wks.location}"
 dependencies_path = "%{wks.location}/../dependencies"
 dev_path          = "%{wks.location}/../dev"
@@ -18,7 +18,7 @@ include_dirs = {}
 -- external dependencies include directories
 include_dirs["glad"] = external_dependencies_path .. "/glad/include"
 include_dirs["glfw"] = external_dependencies_path .. "/glfw/include"
-include_dirs["glm"]  = external_dependencies_path .. "/glm/include"
+include_dirs["glm"]  = external_dependencies_path .. "/glm/glm"
 
 -- internal dependencies include directories
 -- TODO

@@ -12,6 +12,9 @@ project ( "ember" )
         "%{include_dirs.glm}",
         "%{include_dirs.ember}",
     }
+    libdirs {
+        build_path .. "/bin/" .. target_dir
+    }
 
     links {
         "glad",

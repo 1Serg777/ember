@@ -5,10 +5,10 @@ workspace ( "ember" )
    platforms      ( "x64" ) --check what happens if this is omitted
    configurations ( { "Debug", "Release" } )
    location       ( "build" ) -- location ( "%{wks.location}" ) causes a stack overflow!
-   startproject   ( "level-editor" )
+   startproject   ( "ember-lvl-editor" )
 
 include ( external_dependencies_path .. "/glad" )
 include ( external_dependencies_path .. "/glfw" )
 
-include ( dev_path .. "/ember")
-include ( dev_path .. "/ember-lvl-editor")
+include ( dev_path .. "/ember" )
+include ( dev_path .. "/ember-lvl-editor" )
