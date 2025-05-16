@@ -22,12 +22,12 @@ namespace ember
 
 #else
 
-	#define EMBER_FILE ""
+	#define EMBER_FILE __FILE__
 	#define EMBER_FUNCTION ""
-	#define EMBER_LINE ""
+	#define EMBER_LINE __LINE__
 
 	#define EMBER_NODISCARD 
-	#define EMBER_NOEXCEPT 
+	#define EMBER_NOEXCEPT noexcept
 
 #endif
 

@@ -17,6 +17,8 @@ project ( "ember-lvl-editor" )
    
     links {
         "ember",
+        "glfw", -- On Windows it's enough
+        "glad", -- to only link to 'ember'
     }
 
     files {

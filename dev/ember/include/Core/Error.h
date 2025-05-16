@@ -2,6 +2,7 @@
 
 #include "Core/Util.h"
 
+#include <cstdint>
 #include <stdexcept>
 #include <string>
 
@@ -19,8 +20,7 @@ namespace ember
 		EmberError(const std::string& message)
 			: std::exception(), errorMessage(message) {}
 
-		EMBER_NODISCARD char const* what() const override
-		{
+		EMBER_NODISCARD const char* what() const EMBER_NOEXCEPT override {
 			return errorMessage.c_str();
 		}
 

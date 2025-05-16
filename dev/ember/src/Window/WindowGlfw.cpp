@@ -36,7 +36,15 @@ namespace ember {
         : Window(windowSettings) {
     }
     void WindowGlfw::Update() {
-        // TODO
+        /* Render here */
+        glClearColor(215.0f/255.0f, 153/255.0f , 33.0f/255.0f , 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        /* Swap front and back buffers */
+        glfwSwapBuffers(windowHandle);
+
+        /* Poll for and process events */
+        glfwPollEvents();
     }
 
     void WindowGlfw::InitializeOpenGLSpecific(const SettingsGlfw& glfwOglSettings) {

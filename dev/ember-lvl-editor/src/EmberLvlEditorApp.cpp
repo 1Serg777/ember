@@ -34,7 +34,9 @@ namespace ember {
 
 	int EmberLvlEditorApp::Run() {
 		try {
-			// TODO: app logic
+			while (true) {
+				window->Update();
+			}
 		} catch (const GLFWError& glfwError) {
 			std::cerr << "[GLFW Error]: " << glfwError.what() << std::endl;
 			return EXIT_FAILURE;

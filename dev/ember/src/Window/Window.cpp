@@ -19,7 +19,7 @@ namespace ember {
 		WindowGlfw::LoadOpenGlFunctions();
 
 		// 2. Win32 API
-		// [TODO]
+		// TODO: implementation
 
 		return window;
 	}
@@ -29,7 +29,19 @@ namespace ember {
 	}
 #elif EMBER_PLATFORM_LINUX
 	static Window* CreateLinuxWindowOgl(const WindowSettings& windowSettings) {
-		return nullptr;
+		// 1. GLFW & OpenGL
+		WindowGlfw::InitializeGlfwLibrary();
+		WindowGlfw* window = new WindowGlfw(windowSettings);
+		const SettingsGlfw& glfwOglSettings = GetGpuApiCtxOgl()->GetSettingsGlfw();
+		window->InitializeOpenGLSpecific(glfwOglSettings);
+		window->CreateWindow();
+		window->MakeContextCurrent();
+		WindowGlfw::LoadOpenGlFunctions();
+
+		// 2. Wayland or X11
+		// TODO: implementation
+
+		return window;
 	}
 	static Window* CreateLinuxWindowVulkan(const WindowSettings& windowSettings) {
 		return nullptr;
@@ -93,7 +105,7 @@ namespace ember {
 		//    - Wayland Window
 		//    And again, we can use GLFW, or our own implementations.
 		if (gpuApiType == GpuApiType::OPENGL) {
-			// TODO:
+			return CreateLinuxWindowOgl(windowSettings);
 		} else if (gpuApiType == GpuApiType::VULKAN) {
 			assert(false && "Vulkan is not supported yet!");
 		} else {

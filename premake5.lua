@@ -7,8 +7,12 @@ workspace ( "ember" )
    location       ( "build" ) -- location ( "%{wks.location}" ) causes a stack overflow!
    startproject   ( "ember-lvl-editor" )
 
-include ( external_dependencies_path .. "/glad" )
-include ( external_dependencies_path .. "/glfw" )
+-- include ( external_dependencies_path .. "/glad" )
+-- include ( external_dependencies_path .. "/glfw" )
+-- include ( dev_path .. "/ember" )
+-- include ( dev_path .. "/ember-lvl-editor" )
 
-include ( dev_path .. "/ember" )
-include ( dev_path .. "/ember-lvl-editor" )
+include("dependencies/external/glad")
+include("dependencies/external/glfw")
+include("dev/ember")
+include("dev/ember-lvl-editor")
