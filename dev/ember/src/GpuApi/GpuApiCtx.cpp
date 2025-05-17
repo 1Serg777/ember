@@ -5,41 +5,33 @@
 
 namespace ember {
 
-	static GpuApiCtx* gpuApiCtx{nullptr};
+	static GpuApiCtx* currentGpuApiCtx{nullptr};
 
-	void InitializeGpuApiCtx(GpuApiType gpuApiType) {
-		// 1. GPU API Context initialization when the project is already running.
-		//    Possibly the user requested to switch to a different GPU API.
-		if (gpuApiCtx) {
-			if (gpuApiCtx->GetGpuApiType() == gpuApiType)
-				return;
-			TerminateGpuApiCtx();
-		}
-
-		// 2. Startup initialization
+	GpuApiCtx* CreateGpuApiCtx(GpuApiType gpuApiType) {
 		if (gpuApiType == GpuApiType::OPENGL) {
-			InitializeGpuApiCtxOgl();
-			gpuApiCtx = GetGpuApiCtxOgl();
+			return CreateGpuApiCtxOgl();
 		} else if (gpuApiType == GpuApiType::VULKAN) {
 			assert(false && "Vulkan is not supported yet!");
+			return nullptr;
 		} else {
 			assert(false && "Invalid GPU API type id provided!");
+			return nullptr;
 		}
 	}
-	void TerminateGpuApiCtx() {
-		assert(gpuApiCtx != nullptr && "Gpu Api Context must be created!");
+
+	void SetCurrentGpuApiCtx(GpuApiCtx* gpuApiCtx) {
 		if (gpuApiCtx->GetGpuApiType() == GpuApiType::OPENGL) {
-			TerminateGpuApiCtxOgl();
+			SetCurrentGpuApiCtxOgl(static_cast<GpuApiCtxOgl*>(gpuApiCtx));
 		} else if (gpuApiCtx->GetGpuApiType() == GpuApiType::VULKAN) {
 			assert(false && "Vulkan is not supported yet!");
 		} else {
 			assert(false && "Invalid GPU API type id provided!");
 		}
-		gpuApiCtx = nullptr;
+		currentGpuApiCtx = gpuApiCtx;
 	}
 
-	GpuApiCtx* GetGpuApiCtx() {
-		return gpuApiCtx;
+	GpuApiCtx* GetCurrentGpuApiCtx() {
+		return currentGpuApiCtx;
 	}
 
 }

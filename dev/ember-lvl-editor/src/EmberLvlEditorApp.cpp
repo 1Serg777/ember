@@ -17,19 +17,12 @@ namespace ember {
 	}
 
 	void EmberLvlEditorApp::Initialize() {
-		// SetAppSettings();
-
-		// initialize window
-		// initialize gpu api context
-		// initialize renderer
-		// 
-		// load the critical assets first
-		// load the recent project if any
-		//     - load the project's assets
-		// ...
+		InitializeLibraries();
 		InitializeSystems();
 	}
 	void EmberLvlEditorApp::Terminate() {
+		TerminateSystems();
+		TerminateLibraries();
 	}
 
 	int EmberLvlEditorApp::Run() {
@@ -47,24 +40,45 @@ namespace ember {
 		return EXIT_SUCCESS;
 	}
 
-	void EmberLvlEditorApp::InitializeSystems() {
-		InitializeWindowAndGpuApiContext();
+	void EmberLvlEditorApp::InitializeLibraries() {
+		InitializeWindowLibrary(WindowApiType::EM_GLFW);
 	}
-	void EmberLvlEditorApp::InitializeWindowAndGpuApiContext() {
-		// Because of OpenGL and how its context is tied to the window,
-		// we handle both operations as a single unit.
-		// With Vulkan, it's fine to initialize the window first,
-		// and then the Vulkan library itself.
+	void EmberLvlEditorApp::InitializeSystems() {
+		// The settings later will probably be retrieved from some configuration file.
+		GpuApiType gpuApiType = GpuApiType::OPENGL;
+		WindowSettings windowSettings{};
 
-		WindowSettings defaultWindowSettings{};
-		GpuApiType gpuApiType = GpuApiType::OPENGL; // The only one supported for now.
-		if (gpuApiType == GpuApiType::OPENGL) {
-			InitializeGpuApiCtx(gpuApiType);
-			window = std::unique_ptr<Window>(CreateWindow(defaultWindowSettings, gpuApiType));
-		} else if (gpuApiType == GpuApiType::VULKAN) {
-			assert(false && "Vulkan is not supported yet!");
-		} else {
-			assert(false && "Invalid GPU API type id provided!");
+		// Here the objects (of the apporpriate classes according to the settings)
+		// are created and their settings are set up. The initialization happens later.
+		window = std::unique_ptr<Window>(CreateWindow(windowSettings));
+		gpuApiCtx = std::unique_ptr<GpuApiCtx>(CreateGpuApiCtx(gpuApiType));
+
+		InitializeWindowAndGpuApiContext(window.get(), gpuApiCtx.get());
+		SetCurrentGpuApiCtx(gpuApiCtx.get());
+	}
+	void EmberLvlEditorApp::TerminateLibraries() {
+		TerminateWindowLibrary(WindowApiType::EM_GLFW);
+	}
+	void EmberLvlEditorApp::TerminateSystems() {
+		GpuApiType gpuApiType = gpuApiCtx->GetGpuApiType();
+		gpuApiCtx->Terminate();
+		// If the API was OpenGL, then window->DestroyWindow() has already been called
+		// in the Terminate() call of the GPU API context.
+		if (gpuApiType != GpuApiType::OPENGL) {
+			window->DestroyWindow();
 		}
+	}
+
+	void EmberLvlEditorApp::InitializeWindowAndGpuApiContext(Window* window, GpuApiCtx* gpuApiCtx) {
+		// 1. Vulkan isn't inherently tied to windows,
+		//    so a window can be created separately from Vulkan context.
+		if (gpuApiCtx->GetGpuApiType() != GpuApiType::OPENGL) {
+			window->CreateWindow();
+		}
+		// 2. An OpenGL context, on the other hand, is created when a window is created.
+		//    Additionally, we must specify certain parameters (GLFW calls them hints),
+		//    before a window (and therefore a context) is created.
+		//    OpenGL's Context class will take care of both window and context creation.
+		gpuApiCtx->Initialize(window);
 	}
 }

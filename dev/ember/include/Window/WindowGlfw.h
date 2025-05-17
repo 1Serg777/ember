@@ -15,7 +15,7 @@ namespace ember {
 
 		static void InitializeGlfwLibrary();
 		static void TerminateGlfwLibrary();
-
+		static bool GlfwLibraryInitialized();
 		static void LoadOpenGlFunctions();
 
 		WindowGlfw(const WindowSettings& windowSettings);
@@ -24,7 +24,12 @@ namespace ember {
 		CLASS_NO_COPY(WindowGlfw);
 		CLASS_DEFAULT_MOVE(WindowGlfw);
 
+		void CreateWindow(void* dataPtr) override;
+		void DestroyWindow() override;
+
 		void Update() override;
+
+		void CreateGlfwWindow(WindowGlfw* sharedCtxWindow = nullptr);
 
 		// Rendering API specific methods
 		// -----------------------------------------------------------------
@@ -32,11 +37,11 @@ namespace ember {
 		
 		// 1. OpenGL
 
-		void InitializeOpenGLSpecific(const SettingsGlfw& glfwOglSettings);
+		void InitializeOpenGLSpecific(const SettingsOgl& oglSettings);
 		void MakeContextCurrent();
-		void SetSwapInterval(int swapInterval);
+		void MakeContextNonCurrent();
 
-		// void PresentFrame();
+		void PresentFrame();
 
 		// 2. Vulkan
 
@@ -45,15 +50,15 @@ namespace ember {
 		// -----------------------------------------------------------------
 		// -----------------------------------------------------------------
 
-		void CreateWindow(WindowGlfw* sharedCtxWindow = nullptr); // OpenGL shared context window if any.
-		void DestroyWindow();
-
 		GLFWwindow* GetApiSpecificHandle() const;
 
 	private:
 		void InitializeWindowGlfwParams();
-		void CreateGlfwWindow(WindowGlfw* sharedCtxWindow);
+		void SetVisibility(int visibility);
+		void SetClientApi(int api);
 		void RegisterGlfwCallbacks();
+
+		void ProcessEvents();
 
 		GLFWwindow* windowHandle{ nullptr };
 	};
