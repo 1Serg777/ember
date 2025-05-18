@@ -7,9 +7,9 @@ namespace ember {
 
 	static GpuApiCtx* currentGpuApiCtx{nullptr};
 
-	GpuApiCtx* CreateGpuApiCtx(GpuApiType gpuApiType) {
+	GpuApiCtx* CreateGpuApiCtx(GpuApiType gpuApiType, Window* window) {
 		if (gpuApiType == GpuApiType::OPENGL) {
-			return CreateGpuApiCtxOgl();
+			return CreateGpuApiCtxOgl(window);
 		} else if (gpuApiType == GpuApiType::VULKAN) {
 			assert(false && "Vulkan is not supported yet!");
 			return nullptr;
@@ -18,7 +18,6 @@ namespace ember {
 			return nullptr;
 		}
 	}
-
 	void SetCurrentGpuApiCtx(GpuApiCtx* gpuApiCtx) {
 		if (gpuApiCtx->GetGpuApiType() == GpuApiType::OPENGL) {
 			SetCurrentGpuApiCtxOgl(static_cast<GpuApiCtxOgl*>(gpuApiCtx));
@@ -29,7 +28,6 @@ namespace ember {
 		}
 		currentGpuApiCtx = gpuApiCtx;
 	}
-
 	GpuApiCtx* GetCurrentGpuApiCtx() {
 		return currentGpuApiCtx;
 	}

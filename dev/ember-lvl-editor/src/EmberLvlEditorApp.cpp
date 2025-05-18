@@ -28,6 +28,7 @@ namespace ember {
 	int EmberLvlEditorApp::Run() {
 		try {
 			while (true) {
+				gpuApiCtx->Present();
 				window->Update();
 			}
 		} catch (const GLFWError& glfwError) {
@@ -47,11 +48,13 @@ namespace ember {
 		// The settings later will probably be retrieved from some configuration file.
 		GpuApiType gpuApiType = GpuApiType::OPENGL;
 		WindowSettings windowSettings{};
+		windowSettings.type = WindowApiType::EM_GLFW;
 
 		// Here the objects (of the apporpriate classes according to the settings)
-		// are created and their settings are set up. The initialization happens later.
+		// are created and their settings are set up.
+		// However, the actual initialization happens later.
 		window = std::unique_ptr<Window>(CreateWindow(windowSettings));
-		gpuApiCtx = std::unique_ptr<GpuApiCtx>(CreateGpuApiCtx(gpuApiType));
+		gpuApiCtx = std::unique_ptr<GpuApiCtx>(CreateGpuApiCtx(gpuApiType, window.get()));
 
 		InitializeWindowAndGpuApiContext(window.get(), gpuApiCtx.get());
 		SetCurrentGpuApiCtx(gpuApiCtx.get());
@@ -62,7 +65,9 @@ namespace ember {
 	void EmberLvlEditorApp::TerminateSystems() {
 		GpuApiType gpuApiType = gpuApiCtx->GetGpuApiType();
 		gpuApiCtx->Terminate();
-		// If the API was OpenGL, then window->DestroyWindow() has already been called
+		// If OpenGL was used, then window destruction has already happened.
+		// This is because in order to terminate an OpenGL context the corresponding
+		// window, that was created during context initialization, must be destroyed.
 		// in the Terminate() call of the GPU API context.
 		if (gpuApiType != GpuApiType::OPENGL) {
 			window->DestroyWindow();
@@ -70,15 +75,14 @@ namespace ember {
 	}
 
 	void EmberLvlEditorApp::InitializeWindowAndGpuApiContext(Window* window, GpuApiCtx* gpuApiCtx) {
-		// 1. Vulkan isn't inherently tied to windows,
-		//    so a window can be created separately from Vulkan context.
+		// OpenGL is inherently tied to windows. In other words,
+		// when a window is created, a new OpenGL context is created as well.
+		// Vulkan, on the other hand, makes no assumptions about windows, so
+		// it can be created separately and supplied later during initialization (for surface creation).
+		// If OpenGL is used, then window creation happens during context initialization.
 		if (gpuApiCtx->GetGpuApiType() != GpuApiType::OPENGL) {
 			window->CreateWindow();
 		}
-		// 2. An OpenGL context, on the other hand, is created when a window is created.
-		//    Additionally, we must specify certain parameters (GLFW calls them hints),
-		//    before a window (and therefore a context) is created.
-		//    OpenGL's Context class will take care of both window and context creation.
 		gpuApiCtx->Initialize(window);
 	}
 }

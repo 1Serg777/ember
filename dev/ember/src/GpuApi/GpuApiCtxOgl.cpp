@@ -11,115 +11,70 @@ namespace ember {
 	static GpuApiCtxOgl* currentGpuApiCtxOgl{nullptr};
 	static bool openglFunctionsLoaded{false};
 
-	GlfwOglCtx::GlfwOglCtx(WindowGlfw* window, GpuApiCtxOgl* ctx)
-		: ctx(ctx), window(window) {
+	GpuApiCtxOgl::GpuApiCtxOgl(const SettingsOgl& settings)
+		: settings(settings) {
+	}
+	GpuApiType GpuApiCtxOgl::GetGpuApiType() const {
+		return GpuApiType::OPENGL;
+	}
+	const SettingsOgl& GpuApiCtxOgl::GetSettingsOgl() const {
+		return settings;
 	}
 
-	void GlfwOglCtx::Initialize(const SettingsOgl& settings) {
-		window->InitializeOpenGLSpecific(settings);
-		window->CreateGlfwWindow();
+	GlfwOglCtx::GlfwOglCtx(const SettingsOgl& settings, WindowGlfw* window)
+		: GpuApiCtxOgl(settings), window(window) {
+	}
+
+	void GlfwOglCtx::Initialize(Window* window) {
+		// assert(this->window == window && "[GLFW OGL Context] Initializing OGL context with a wrong window!");
+		this->window->InitializeOpenGLSpecific(settings);
+		this->window->CreateGlfwWindow();
 	}
 	void GlfwOglCtx::Terminate() {
 		window->DestroyWindow();
 	}
-
 	void GlfwOglCtx::Present() {
+		glClearColor(215.0f / 255.0f, 153 / 255.0f, 33.0f / 255.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
 		window->PresentFrame();
 	}
 
 	void GlfwOglCtx::MakeCurrent() {
 		window->MakeContextCurrent();
+		if (!openglFunctionsLoaded) {
+			WindowGlfw::LoadOpenGlFunctions();
+		}
 	}
 	void GlfwOglCtx::MakeNonCurrent() {
 		window->MakeContextNonCurrent();
 	}
 
-	GpuApiCtxOgl::GpuApiCtxOgl(const SettingsOgl& settings)
-		: settings(settings) {
-	}
-
-	void GpuApiCtxOgl::Initialize(Window* window) {
-		if (window->GetWindowType() == WindowApiType::EM_GLFW) {
-			WindowGlfw* windowGlfw = static_cast<WindowGlfw*>(window);
-			windowGlfw->InitializeOpenGLSpecific(settings);
-			windowGlfw->CreateGlfwWindow();
-		} else if (window->GetWindowType() == WindowApiType::EM_WIN32) {
-			// TODO: implement Win32 API Window
-			assert(false && "Win32 Window API is not supported with OpenGL yet!");
-		} else {
-			assert(false && "Unsupported Window API!");
-		}
-		this->window = window;
-	}
-	void GpuApiCtxOgl::Terminate() {
-		if (window->GetWindowType() == WindowApiType::EM_GLFW) {
-			WindowGlfw* windowGlfw = static_cast<WindowGlfw*>(window);
-			windowGlfw->DestroyWindow();
-		} else if (window->GetWindowType() == WindowApiType::EM_WIN32) {
-			// TODO: implement Win32 API Window
-			assert(false && "Win32 Window API is not supported with OpenGL yet!");
-		} else {
-			assert(false && "Unsupported Window API!");
-		}
-		window = nullptr;
-	}
-
-	void GpuApiCtxOgl::Present() {
-		if (window->GetWindowType() == WindowApiType::EM_GLFW) {
-			WindowGlfw* windowGlfw = static_cast<WindowGlfw*>(window);
-			windowGlfw->PresentFrame();
-		}
-		else if (window->GetWindowType() == WindowApiType::EM_WIN32) {
-			// TODO: implement Win32 API Window
-			assert(false && "Win32 Window API is not supported with OpenGL yet!");
-		}
-		else {
-			assert(false && "Unsupported Window API!");
-		}
-	}
-
-	GpuApiType GpuApiCtxOgl::GetGpuApiType() const {
-		return GpuApiType::OPENGL;
-	}
-
-	void GpuApiCtxOgl::MakeCurrent() {
-		assert(window && "The context wasn't properly initialized! Window pointer was 'nullptr'!");
-		if (window->GetWindowType() == WindowApiType::EM_GLFW) {
-			WindowGlfw* windowGlfw = static_cast<WindowGlfw*>(window);
-			windowGlfw->MakeContextCurrent();
-			if (!openglFunctionsLoaded) {
-				WindowGlfw::LoadOpenGlFunctions();
-			}
-		} else if (window->GetWindowType() == WindowApiType::EM_WIN32) {
-			// TODO: implement Win32 API Window
-			assert(false && "Win32 Window API is not supported with OpenGL yet!");
-		} else {
-			assert(false && "Unsupported Window API!");
-		}
-	}
-	void GpuApiCtxOgl::MakeNonCurrent() {
-		assert(window && "The context wasn't properly initialized! Window pointer was 'nullptr'!");
-		if (window->GetWindowType() == WindowApiType::EM_GLFW) {
-			WindowGlfw* windowGlfw = static_cast<WindowGlfw*>(window);
-			windowGlfw->MakeContextNonCurrent();
-		}
-		else if (window->GetWindowType() == WindowApiType::EM_WIN32) {
-			// TODO: implement Win32 API Window
-			assert(false && "Win32 Window API is not supported with OpenGL yet!");
-		}
-		else {
-			assert(false && "Unsupported Window API!");
-		}
-	}
-
-	const SettingsOgl& GpuApiCtxOgl::GetSettingsOgl() const {
-		return settings;
-	}
-
-	GpuApiCtx* CreateGpuApiCtxOgl() {
+	GpuApiCtxOgl* CreateGpuApiCtxOgl(Window* window) {
 		SettingsOgl defaultSettings{};
-		GpuApiCtxOgl* gpuApiCtxOgl = new GpuApiCtxOgl(defaultSettings);
-		return gpuApiCtxOgl; // The ownership is transferred to the caller!
+		WindowApiType windowType = window->GetWindowType();
+		if (windowType == WindowApiType::EM_GLFW) {
+			GlfwOglCtx* glfwOglCtx = new GlfwOglCtx(defaultSettings, static_cast<WindowGlfw*>(window));
+			return glfwOglCtx; // The ownership is transferred to the caller!
+		}
+#ifdef EMBER_PLATFORM_WIN32
+		else if (windowType == WindowApiType::EM_WIN32) {
+			assert(false && "[OGL Context] Win32 Window API is not supported yet!");
+			return nullptr;
+		}
+#elif EMBER_PLATFORM_LINUX
+		else if (windowType == WindowApiType::WAYLAND) {
+			assert(false && "[OGL Context] Wayland Window API is not supported yet!");
+			return nullptr;
+		}
+		else if (windowType == WindowApiType::X11) {
+			assert(false && "[OGL Context] X11 Window API is not supported yet!");
+			return nullptr;
+		}
+#endif
+		else {
+			assert(false && "[Window] Unsupported Window API!");
+			return nullptr;
+		}
 	}
 
 	void SetCurrentGpuApiCtxOgl(GpuApiCtxOgl* gpuApiCtxOgl) {

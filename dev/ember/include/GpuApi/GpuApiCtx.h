@@ -1,8 +1,8 @@
 #pragma once
 
-namespace ember {
+#include "Window/Window.h"
 
-	class Window;
+namespace ember {
 
 	enum class GpuApiType {
 		NONE = 0,
@@ -23,7 +23,7 @@ namespace ember {
 	};
 
 	/* Add more configuration parameters? */
-	GpuApiCtx* CreateGpuApiCtx(GpuApiType gpuApiType);
+	GpuApiCtx* CreateGpuApiCtx(GpuApiType gpuApiType, Window* window);
 
 	void SetCurrentGpuApiCtx(GpuApiCtx* gpuApiCtx);
 	GpuApiCtx* GetCurrentGpuApiCtx();

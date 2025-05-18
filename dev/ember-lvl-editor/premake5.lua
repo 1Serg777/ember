@@ -7,6 +7,8 @@ project ( "ember-lvl-editor" )
     objdir     ( build_path .. "/bin-int/" .. obj_dir )
 
     includedirs {
+        -- "%{include_dirs.glad}", -- Uncomment if you ever need to work with
+        -- "%{include_dirs.glfw}", -- these directly in the project.
         "%{include_dirs.glm}",
         "%{include_dirs.ember}",
         "%{include_dirs.ember_lvl_editor}",

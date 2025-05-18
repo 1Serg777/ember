@@ -8,6 +8,7 @@ namespace ember {
 #ifdef EMBER_PLATFORM_WIN32
 	static Window* CreateWindowsWindow(const WindowSettings& windowSettings) {
 		if (windowSettings.type == WindowApiType::EM_GLFW) {
+			// 1. GLFW API
 			WindowGlfw* window = new WindowGlfw(windowSettings);
 			return window;
 		} else if (windowSettings.type == WindowApiType::EM_WIN32) {
@@ -22,11 +23,24 @@ namespace ember {
 	}
 #elif EMBER_PLATFORM_LINUX
 	static Window* CreateLinuxWindow(const WindowSettings& windowSettings) {
-		// 1. GLFW & OpenGL
-		// TODO
-		// 2. Wayland or X11
-		// TODO
-		return nullptr;
+		if (windowSettings.type == WindowApiType::EM_GLFW) {
+			// 1. GLFW API
+			WindowGlfw* window = new WindowGlfw(windowSettings);
+			return window;
+		} else if (windowSettings.type == WindowApiType::EM_WAYLAND) {
+			// 2. Wayland API
+			// TODO: implementation
+			assert(false && "[Window] Wayland Window API is not supported yet!");
+			return nullptr;
+		} else if (windowSettings.type == WindowApiType::EM_X11) {
+			// 3. X11 API
+			// TODO: implementation
+			assert(false && "[Window] X11 Window API is not supported yet!");
+			return nullptr;
+		} else {
+			assert(false && "[Window] Unsupported Window API!");
+			return nullptr;
+		}
 	}
 #endif
 
@@ -94,9 +108,13 @@ namespace ember {
 	}
 
 	void InitializeWindowLibrary(WindowApiType windowApiType) {
-		WindowGlfw::InitializeGlfwLibrary();
+		if (windowApiType == WindowApiType::EM_GLFW) {
+			WindowGlfw::InitializeGlfwLibrary();
+		}
 	}
 	void TerminateWindowLibrary(WindowApiType windowApiType) {
-		WindowGlfw::TerminateGlfwLibrary();
+		if (windowApiType == WindowApiType::EM_GLFW) {
+			WindowGlfw::TerminateGlfwLibrary();
+		}
 	}
 }
