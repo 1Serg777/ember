@@ -2,6 +2,7 @@
 
 #include "Core/CmdLineArgs.h"
 #include "GpuApi/GpuApiCtx.h"
+#include "Event/EventRegistry.h"
 #include "Window/Window.h"
 
 #include <memory>
@@ -25,8 +26,15 @@ namespace ember {
 
         void InitializeWindowAndGpuApiContext(Window* window, GpuApiCtx* gpuApiCtx);
 
+        void RegisterApplicationCallbacks();
+        void OnKeyboardKeyEvent(const KeyboardKeyEventData& keyboardKeyEventData);
+        void OnWindowClose(const WindowCloseEventData& windowCloseEventData);
+
+        std::unique_ptr<EventRegistry> eventRegistry;
         std::unique_ptr<GpuApiCtx> gpuApiCtx;
         std::unique_ptr<Window> window;
+
+        bool appIsRunning{false};
     };
 
 }

@@ -51,11 +51,11 @@ namespace ember {
 		RemoveEventRegistry();
 	}
 
-	void Window::SetEventRegistry(/* EventRegistry* eventRegistry */) {
-		// TODO: set event registry implementation
+	void Window::SetEventRegistry(EventRegistry* eventRegistry) {
+		this->eventRegistry = eventRegistry;
 	}
 	void Window::RemoveEventRegistry() {
-		// TODO: remove event registry implementation
+		this->eventRegistry = nullptr;
 	}
 
 	const WindowSettings& Window::GetWindowSettings() const {

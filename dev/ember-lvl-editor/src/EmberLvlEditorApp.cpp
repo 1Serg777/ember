@@ -9,6 +9,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <functional>
 #include <memory>
 
 namespace ember {
@@ -19,6 +20,7 @@ namespace ember {
 	void EmberLvlEditorApp::Initialize() {
 		InitializeLibraries();
 		InitializeSystems();
+		RegisterApplicationCallbacks();
 	}
 	void EmberLvlEditorApp::Terminate() {
 		TerminateSystems();
@@ -26,10 +28,12 @@ namespace ember {
 	}
 
 	int EmberLvlEditorApp::Run() {
+		appIsRunning = true;
 		try {
-			while (true) {
+			while (appIsRunning) {
 				gpuApiCtx->Present();
 				window->Update();
+				eventRegistry->Update();
 			}
 		} catch (const GLFWError& glfwError) {
 			std::cerr << "[GLFW Error]: " << glfwError.what() << std::endl;
@@ -45,7 +49,9 @@ namespace ember {
 		InitializeWindowLibrary(WindowApiType::EM_GLFW);
 	}
 	void EmberLvlEditorApp::InitializeSystems() {
-		// The settings later will probably be retrieved from some configuration file.
+		eventRegistry = std::make_unique<EventRegistry>();
+
+		// Later, these settings will probably be retrieved from some configuration file.
 		GpuApiType gpuApiType = GpuApiType::OPENGL;
 		WindowSettings windowSettings{};
 		windowSettings.type = WindowApiType::EM_GLFW;
@@ -75,6 +81,7 @@ namespace ember {
 	}
 
 	void EmberLvlEditorApp::InitializeWindowAndGpuApiContext(Window* window, GpuApiCtx* gpuApiCtx) {
+		window->SetEventRegistry(eventRegistry.get());
 		// OpenGL is inherently tied to windows. In other words,
 		// when a window is created, a new OpenGL context is created as well.
 		// Vulkan, on the other hand, makes no assumptions about windows, so
@@ -84,5 +91,26 @@ namespace ember {
 			window->CreateWindow();
 		}
 		gpuApiCtx->Initialize(window);
+	}
+
+	void EmberLvlEditorApp::RegisterApplicationCallbacks() {
+		using namespace std::placeholders;
+
+		eventRegistry->RegisterEventCallback<KeyboardKeyEventData>(
+			std::bind(&EmberLvlEditorApp::OnKeyboardKeyEvent, this, _1));
+		eventRegistry->RegisterEventCallback<WindowCloseEventData>(
+			std::bind(&EmberLvlEditorApp::OnWindowClose, this, _1));
+	}
+	void EmberLvlEditorApp::OnKeyboardKeyEvent(const KeyboardKeyEventData& keyboardKeyEventData) {
+		switch (keyboardKeyEventData.key) {
+			case Keyboard::KeyCode::EM_KEY_ESC:
+				this->appIsRunning = false;
+				break;
+		}
+	}
+	void EmberLvlEditorApp::OnWindowClose(const WindowCloseEventData& windowCloseEventData) {
+		if (windowCloseEventData.close) {
+			this->appIsRunning = false;
+		}
 	}
 }

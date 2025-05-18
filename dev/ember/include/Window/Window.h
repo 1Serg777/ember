@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Event/EventRegistry.h"
 #include "Math/MathUtil.h"
 
 #include <string_view>
@@ -41,7 +42,7 @@ namespace ember {
 
 		virtual void Update() = 0;
 
-		virtual void SetEventRegistry(/* EventRegistry* eventRegistry */);
+		virtual void SetEventRegistry(EventRegistry* eventRegistry);
 		virtual void RemoveEventRegistry();
 
 		const WindowSettings& GetWindowSettings() const;
@@ -59,6 +60,7 @@ namespace ember {
 
 	protected:
 		WindowSettings windowSettings;
+		EventRegistry* eventRegistry{nullptr};
 	};
 
 	Window* CreateWindow(const WindowSettings& windowSettings);

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Input/Keyboard.h"
+
 #include <functional>
 
 namespace ember {
@@ -36,20 +38,78 @@ namespace ember {
 		EventType eventType{ EventType::UNIDENTIFIED };
 	};
 
-	/*
 	class KeyboardKeyEventData : public EventData {
 	public:
-		static constexpr EventType Type = EventType::KEYBOARD_KEY;
-		using Callable = std::function<void(const KeyboardKeyEventData&)>;
+		static constexpr EventType eventType = EventType::KEYBOARD_KEY;
+		using EventCallbackType = std::function<void(const KeyboardKeyEventData&)>;
 
 		KeyboardKeyEventData()
 			: EventData(EventType::KEYBOARD_KEY) {}
 
-		Keyboard::KeyCode key{ Keyboard::KeyCode::VLE_KEY_UNIDENTIFIED };
+		Keyboard::KeyCode key{ Keyboard::KeyCode::EM_KEY_UNIDENTIFIED };
 		KeyActionType action{ KeyActionType::UNIDENTIFIED };
 
-		int scanCode{ 0 };
+		int scancode{ 0 };
 	};
-	*/
+
+	class WindowCloseEventData : public EventData {
+	public:
+		static constexpr EventType eventType = EventType::WINDOW_CLOSE;
+		using EventCallbackType = std::function<void(const WindowCloseEventData&)>;
+
+		WindowCloseEventData()
+			: EventData(EventType::WINDOW_CLOSE) {}
+
+		bool close{false};
+	};
+
+	class EventCallbackBase {
+	public:
+		using EventCallbackId = int;
+
+		EventCallbackBase()
+			: id(GenerateUniqueId()) {}
+
+		EventCallbackId GetCallbackId() const {
+			return id;
+		}
+
+	protected:
+		static EventCallbackId GenerateUniqueId() {
+			static EventCallbackId uniqueId{ 0 };
+			return ++uniqueId;
+		}
+
+	private:
+		// id = 0 is an invalid id
+		EventCallbackId id{ 0 };
+	};
+
+	template <typename EventCallbackData>
+	class EventCallback : public EventCallbackBase {
+	public:
+		EventCallback(typename EventCallbackData::EventCallbackType callback)
+			: callback(callback) {}
+
+		void Invoke(const EventCallbackData& eventCallbackData) {
+			callback(eventCallbackData);
+		}
+
+	private:
+		typename EventCallbackData::EventCallbackType callback;
+	};
+
+	template<typename EventCallbackData>
+	inline bool operator==(
+		const EventCallback<EventCallbackData>& c1,
+		const EventCallback<EventCallbackData>& c2) {
+		return c1.GetCallbackId() == c2.GetCallbackId();
+	}
+	template<typename EventCallbackData>
+	inline bool operator!=(
+		const EventCallback<EventCallbackData>& c1,
+		const EventCallback<EventCallbackData>& c2) {
+		return !(c1 == c2);
+	}
 
 }

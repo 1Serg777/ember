@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Window/Window.h"
 #include "Core/Util.h"
+#include "Event/Event.h"
 #include "GpuApi/GpuApiCtxOgl.h"
+#include "Window/Window.h"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -11,8 +12,6 @@ namespace ember {
 
 	class WindowGlfw : public Window {
 	public:
-		static void GlfwErrorCallback(int errorCode, const char* description);
-
 		static void InitializeGlfwLibrary();
 		static void TerminateGlfwLibrary();
 		static bool GlfwLibraryInitialized();
@@ -59,6 +58,10 @@ namespace ember {
 		void RegisterGlfwCallbacks();
 
 		void ProcessEvents();
+
+		static void KeyboardKeyEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+		static void WindowCloseEventCallback(GLFWwindow* window);
+		static void GlfwErrorCallback(int errorCode, const char* description);
 
 		GLFWwindow* windowHandle{ nullptr };
 	};
