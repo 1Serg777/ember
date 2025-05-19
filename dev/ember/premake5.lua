@@ -1,30 +1,32 @@
-project ( "ember" )
-    kind       ( "StaticLib" )
-    language   ( "C++" )
-    cppdialect ( "C++17" )
-    location   ( build_path .. "/ember" )
-    targetdir  ( build_path .. "/bin/" .. target_dir )
-    objdir     ( build_path .. "/bin-int/" .. obj_dir )
+project("ember")
+    kind      ("StaticLib")
+    language  ("C++")
+    cppdialect("C++17")
+    location  (build_path .. "/ember")
+    targetdir (build_path .. "/bin/" .. target_dir)
+    objdir    (build_path .. "/bin-int/" .. obj_dir)
 
-    includedirs {
+    includedirs({
         "%{include_dirs.glad}",
         "%{include_dirs.glfw}",
         "%{include_dirs.glm}",
+        "%{include_dirs.imgui}",
         "%{include_dirs.ember}",
-    }
-    libdirs {
+    })
+    libdirs({
         build_path .. "/bin/" .. target_dir
-    }
+    })
 
-    links {
+    links({
         "glad",
         "glfw",
-    }
+        "imgui",
+    })
 
-    files {
+    files({
         "%{include_dirs.ember}/**.h",
         "%{src_dirs.ember}/**.cpp",
-    }
+    })
 
     filter ( "configurations:Debug" )
         defines ( { "DEBUG", "_DEBUG" } )

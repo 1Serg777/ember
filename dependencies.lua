@@ -16,9 +16,10 @@ obj_dir    = "%{prj.name}/%{cfg.buildcfg}-%{cfg.architecture}-%{cfg.system}"
 include_dirs = {}
 
 -- external dependencies include directories
-include_dirs["glad"] = external_dependencies_path .. "/glad/include"
-include_dirs["glfw"] = external_dependencies_path .. "/glfw/include"
-include_dirs["glm"]  = external_dependencies_path .. "/glm/glm"
+include_dirs["glad"]  = external_dependencies_path .. "/glad/include"
+include_dirs["glfw"]  = external_dependencies_path .. "/glfw/include"
+include_dirs["glm"]   = external_dependencies_path .. "/glm/glm"
+include_dirs["imgui"] = external_dependencies_path .. "/imgui"
 
 -- internal dependencies include directories
 -- TODO
@@ -33,8 +34,9 @@ include_dirs["ember_lvl_editor"] = dev_path .. "/ember-lvl-editor/include"
 src_dirs = {}
 
 -- external dependencies source code directories
-src_dirs["glad"] = external_dependencies_path .. "/glad/src"
-src_dirs["glfw"] = external_dependencies_path .. "/glfw/src"
+src_dirs["glad"]  = external_dependencies_path .. "/glad/src"
+src_dirs["glfw"]  = external_dependencies_path .. "/glfw/src"
+src_dirs["imgui"] = external_dependencies_path .. "/imgui"
 
 -- internal dependencies source code directories
 -- TODO

@@ -15,8 +15,13 @@ namespace ember {
 		virtual ~GpuApiCtx() = default;
 
 		virtual void Initialize(Window* window) = 0;
+		virtual void InitializeGuiContext(Window* window) = 0;
 		virtual void Terminate() = 0;
+		virtual void TerminateGuiContext() = 0;
 
+		virtual void OnFrameBegin() = 0;
+		virtual void OnFrameEnd() = 0;
+		virtual void DrawFrame() = 0;
 		virtual void Present() = 0;
 
 		virtual GpuApiType GetGpuApiType() const = 0;

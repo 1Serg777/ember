@@ -31,9 +31,14 @@ namespace ember {
 		appIsRunning = true;
 		try {
 			while (appIsRunning) {
-				gpuApiCtx->Present();
 				window->Update();
 				eventRegistry->Update();
+
+				gpuApiCtx->OnFrameBegin();
+				gpuApiCtx->DrawFrame();
+				gpuApiCtx->OnFrameEnd();
+
+				gpuApiCtx->Present();
 			}
 		} catch (const GLFWError& glfwError) {
 			std::cerr << "[GLFW Error]: " << glfwError.what() << std::endl;
@@ -64,12 +69,14 @@ namespace ember {
 
 		InitializeWindowAndGpuApiContext(window.get(), gpuApiCtx.get());
 		SetCurrentGpuApiCtx(gpuApiCtx.get());
+		InitializeGuiContext();
 	}
 	void EmberLvlEditorApp::TerminateLibraries() {
 		TerminateWindowLibrary(WindowApiType::EM_GLFW);
 	}
 	void EmberLvlEditorApp::TerminateSystems() {
 		GpuApiType gpuApiType = gpuApiCtx->GetGpuApiType();
+		gpuApiCtx->TerminateGuiContext();
 		gpuApiCtx->Terminate();
 		// If OpenGL was used, then window destruction has already happened.
 		// This is because in order to terminate an OpenGL context the corresponding
@@ -91,6 +98,9 @@ namespace ember {
 			window->CreateWindow();
 		}
 		gpuApiCtx->Initialize(window);
+	}
+	void EmberLvlEditorApp::InitializeGuiContext() {
+		gpuApiCtx->InitializeGuiContext(window.get());
 	}
 
 	void EmberLvlEditorApp::RegisterApplicationCallbacks() {

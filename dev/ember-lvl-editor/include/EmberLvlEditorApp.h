@@ -25,6 +25,7 @@ namespace ember {
         void TerminateSystems();
 
         void InitializeWindowAndGpuApiContext(Window* window, GpuApiCtx* gpuApiCtx);
+        void InitializeGuiContext();
 
         void RegisterApplicationCallbacks();
         void OnKeyboardKeyEvent(const KeyboardKeyEventData& keyboardKeyEventData);

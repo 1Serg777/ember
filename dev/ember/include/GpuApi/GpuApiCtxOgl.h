@@ -2,13 +2,17 @@
 
 #include "Core/Util.h"
 #include "GpuApi/GpuApiCtx.h"
-#include "Window/Window.h"
 
 #include <string_view>
+#include <memory>
 
 namespace ember {
 
+	class Window;
 	class WindowGlfw;
+
+	class GpuApiImGuiCtx;
+	class OglGlfwImGuiCtx;
 
 	struct SettingsOgl {
 		int openglVersionMajor{ 4 };
@@ -27,6 +31,7 @@ namespace ember {
 		GpuApiType GetGpuApiType() const override;
 
 		virtual void Initialize(Window* window = nullptr) = 0;
+		virtual void InitializeGuiContext(Window* window = nullptr) = 0;
 
 		virtual void MakeCurrent() = 0;
 		virtual void MakeNonCurrent() = 0;
@@ -43,14 +48,21 @@ namespace ember {
 		~GlfwOglCtx() = default;
 
 		void Initialize(Window* window) override;
+		void InitializeGuiContext(Window* window) override;
 		void Terminate() override;
+		void TerminateGuiContext() override;
+
+		void OnFrameBegin() override;
+		void OnFrameEnd() override;
+		void DrawFrame() override;
 		void Present() override;
 
 		void MakeCurrent() override;
 		void MakeNonCurrent() override;
 
 	private:
-		WindowGlfw* window{ nullptr };
+		WindowGlfw* window{nullptr};
+		OglGlfwImGuiCtx* imGuiCtx{nullptr};
 	};
 
 	// GlfwGpuApiCtxOgl or GlfwOglGpuApiCtx
