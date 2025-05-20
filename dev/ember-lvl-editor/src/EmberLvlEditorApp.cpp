@@ -57,9 +57,11 @@ namespace ember {
 		eventRegistry = std::make_unique<EventRegistry>();
 
 		// Later, these settings will probably be retrieved from some configuration file.
-		GpuApiType gpuApiType = GpuApiType::OPENGL;
+		// GpuApiType gpuApiType = GpuApiType::OPENGL;
+		GpuApiType gpuApiType = GpuApiType::VULKAN;
 		WindowSettings windowSettings{};
 		windowSettings.type = WindowApiType::EM_GLFW;
+		windowSettings.isResizable = false;
 
 		// Here the objects (of the apporpriate classes according to the settings)
 		// are created and their settings are set up.
@@ -97,10 +99,10 @@ namespace ember {
 		if (gpuApiCtx->GetGpuApiType() != GpuApiType::OPENGL) {
 			window->CreateWindow();
 		}
-		gpuApiCtx->Initialize(window);
+		gpuApiCtx->Initialize();
 	}
 	void EmberLvlEditorApp::InitializeGuiContext() {
-		gpuApiCtx->InitializeGuiContext(window.get());
+		gpuApiCtx->InitializeGuiContext();
 	}
 
 	void EmberLvlEditorApp::RegisterApplicationCallbacks() {

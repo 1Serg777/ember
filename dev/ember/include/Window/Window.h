@@ -28,6 +28,7 @@ namespace ember {
 
 		bool isFullscreen{false};
 		bool isVisible{true};
+		bool isResizable{true};
 
 		bool setCallbacks{true};
 	};

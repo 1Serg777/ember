@@ -99,7 +99,11 @@ namespace ember {
     }
 
     void WindowGlfw::InitializeWindowGlfwParams() {
+        SetResizability(windowSettings.isResizable ? GLFW_TRUE : GLFW_FALSE);
         SetVisibility(windowSettings.isVisible ? GLFW_TRUE : GLFW_FALSE);
+    }
+    void WindowGlfw::SetResizability(int resize) {
+        glfwWindowHint(GLFW_RESIZABLE, resize);
     }
     void WindowGlfw::SetVisibility(int visibility) {
         glfwWindowHint(GLFW_VISIBLE, visibility);

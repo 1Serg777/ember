@@ -1,5 +1,6 @@
 #include "GpuApi/GpuApiCtx.h"
 #include "GpuApi/GpuApiCtxOgl.h"
+#include "GpuApi/GpuApiCtxVk.h"
 
 #include <cassert>
 
@@ -11,8 +12,7 @@ namespace ember {
 		if (gpuApiType == GpuApiType::OPENGL) {
 			return CreateGpuApiCtxOgl(window);
 		} else if (gpuApiType == GpuApiType::VULKAN) {
-			assert(false && "Vulkan is not supported yet!");
-			return nullptr;
+			return CreateGpuApiCtxVk(window);
 		} else {
 			assert(false && "Invalid GPU API type id provided!");
 			return nullptr;
@@ -22,7 +22,7 @@ namespace ember {
 		if (gpuApiCtx->GetGpuApiType() == GpuApiType::OPENGL) {
 			SetCurrentGpuApiCtxOgl(static_cast<GpuApiCtxOgl*>(gpuApiCtx));
 		} else if (gpuApiCtx->GetGpuApiType() == GpuApiType::VULKAN) {
-			assert(false && "Vulkan is not supported yet!");
+			SetCurrentGpuApiCtxVk(static_cast<GpuApiCtxVk*>(gpuApiCtx));
 		} else {
 			assert(false && "Invalid GPU API type id provided!");
 		}

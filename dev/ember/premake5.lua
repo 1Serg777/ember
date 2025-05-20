@@ -17,10 +17,15 @@ project("ember")
         build_path .. "/bin/" .. target_dir
     })
 
+    filter { "system:windows" }
+        includedirs({"%{include_dirs.vulkan_win32}"})
+        libdirs({"%{lib_dirs.vulkan_win32}"})
+
     links({
         "glad",
         "glfw",
         "imgui",
+        "vulkan-1"
     })
 
     files({

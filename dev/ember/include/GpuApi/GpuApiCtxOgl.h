@@ -30,12 +30,6 @@ namespace ember {
 
 		GpuApiType GetGpuApiType() const override;
 
-		virtual void Initialize(Window* window = nullptr) = 0;
-		virtual void InitializeGuiContext(Window* window = nullptr) = 0;
-
-		virtual void MakeCurrent() = 0;
-		virtual void MakeNonCurrent() = 0;
-
 		const SettingsOgl& GetSettingsOgl() const;
 
 	protected:
@@ -45,20 +39,22 @@ namespace ember {
 	class GlfwOglCtx : public GpuApiCtxOgl {
 	public:
 		GlfwOglCtx(const SettingsOgl& settings, WindowGlfw* window);
+		CLASS_NO_COPY(GlfwOglCtx);
+		CLASS_NO_MOVE(GlfwOglCtx);
 		~GlfwOglCtx() = default;
 
-		void Initialize(Window* window) override;
-		void InitializeGuiContext(Window* window) override;
+		void Initialize() override;
+		void InitializeGuiContext() override;
 		void Terminate() override;
 		void TerminateGuiContext() override;
+
+		void OnMakeCurrent() override;
+		void OnMakeNonCurrent() override;
 
 		void OnFrameBegin() override;
 		void OnFrameEnd() override;
 		void DrawFrame() override;
 		void Present() override;
-
-		void MakeCurrent() override;
-		void MakeNonCurrent() override;
 
 	private:
 		WindowGlfw* window{nullptr};

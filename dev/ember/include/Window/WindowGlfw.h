@@ -53,6 +53,9 @@ namespace ember {
 
 	private:
 		void InitializeWindowGlfwParams();
+		// "Resizability" word is actually used!
+		// Source: https://developer.apple.com/documentation/swiftui/windowresizability
+		void SetResizability(int resize);
 		void SetVisibility(int visibility);
 		void SetClientApi(int api);
 		void RegisterGlfwCallbacks();

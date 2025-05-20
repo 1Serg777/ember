@@ -31,13 +31,12 @@ namespace ember {
 		: GpuApiCtxOgl(settings), window(window) {
 	}
 
-	void GlfwOglCtx::Initialize(Window* window) {
-		// assert(this->window == window && "[GLFW OGL Context] Initializing OGL context with a wrong window!");
-		this->window->InitializeOpenGLSpecific(settings);
-		this->window->CreateGlfwWindow();
+	void GlfwOglCtx::Initialize() {
+		window->InitializeOpenGLSpecific(settings);
+		window->CreateGlfwWindow();
 	}
-	void GlfwOglCtx::InitializeGuiContext(Window* window) {
-		imGuiCtx = new OglGlfwImGuiCtx(this, this->window, settings.glslVersion.data());
+	void GlfwOglCtx::InitializeGuiContext() {
+		imGuiCtx = new OglGlfwImGuiCtx(this, window, settings.glslVersion.data());
 		imGuiCtx->Initialize();
 	}
 	void GlfwOglCtx::Terminate() {
@@ -106,13 +105,13 @@ namespace ember {
 		window->PresentFrame();
 	}
 
-	void GlfwOglCtx::MakeCurrent() {
+	void GlfwOglCtx::OnMakeCurrent() {
 		window->MakeContextCurrent();
 		if (!openglFunctionsLoaded) {
 			WindowGlfw::LoadOpenGlFunctions();
 		}
 	}
-	void GlfwOglCtx::MakeNonCurrent() {
+	void GlfwOglCtx::OnMakeNonCurrent() {
 		window->MakeContextNonCurrent();
 	}
 
@@ -146,9 +145,9 @@ namespace ember {
 
 	void SetCurrentGpuApiCtxOgl(GpuApiCtxOgl* gpuApiCtxOgl) {
 		if (currentGpuApiCtxOgl) {
-			currentGpuApiCtxOgl->MakeNonCurrent();
+			currentGpuApiCtxOgl->OnMakeNonCurrent();
 		}
-		gpuApiCtxOgl->MakeCurrent();
+		gpuApiCtxOgl->OnMakeCurrent();
 		currentGpuApiCtxOgl = gpuApiCtxOgl;
 	}
 	GpuApiCtxOgl* GetCurrentGpuApiCtxOgl() {
