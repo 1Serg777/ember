@@ -6,6 +6,9 @@
 
 #include <vulkan/vulkan.h>
 
+#include <cstdint>
+#include <optional>
+
 namespace ember {
 
 	class Window;
@@ -15,18 +18,79 @@ namespace ember {
 		// TODO
 	};
 
+	struct VulkanQueueFamilyIndices {
+		bool HasGraphicsQueueFamily() const;
+		bool HasPresentQueueFamily() const;
+		bool Complete() const;
+
+		std::optional<uint32_t> graphicsQueueFamily;
+		std::optional<uint32_t> presentQueueFamily;
+	};
+
+	struct VulkanQueueFamily {
+		VkQueue queueHandle{VK_NULL_HANDLE};
+		VkCommandPool commandPool{VK_NULL_HANDLE};
+		std::vector<VkCommandBuffer> commandBuffers;
+		uint32_t queueFamilyId{0};
+	};
+
+	struct VulkanSwapchainQueryInfo {
+		VkSurfaceCapabilitiesKHR capabilities{};
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentModes;
+	};
+
+	struct VulkanPhysicalDeviceInfo {
+		VkPhysicalDeviceProperties deviceProperties{};
+		VkPhysicalDeviceFeatures deviceFeatures{};
+		std::optional<VulkanSwapchainQueryInfo> swapchainInfo;
+		std::vector<VkExtensionProperties> deviceExtensions;
+		VulkanQueueFamilyIndices queueFamilyIds;
+		VkPhysicalDevice physicalDevice{VK_NULL_HANDLE};
+	};
+
 	struct VulkanInstanceData {
 		VkInstance instance{VK_NULL_HANDLE};
-#ifndef NDEBUG
+#if defined(DEBUG) || defined(_DEBUG)
 		VkDebugUtilsMessengerEXT debugMessenger{VK_NULL_HANDLE};
 #endif
-		// Extensions and Layers
 		std::vector<const char*> extensions;
 		std::vector<const char*> layers;
 	};
 
+	struct VulkanDeviceData {
+		VulkanPhysicalDeviceInfo physicalDeviceInfo{};
+		VkPhysicalDeviceFeatures requestedFeatures{};
+
+		// VulkanSwapchainData swapchainData{};
+
+		VulkanQueueFamily graphicsQueueFamily{};
+		VulkanQueueFamily presentationQueueFamily{};
+
+		std::vector<const char*> requestedDeviceExtensions;
+		std::vector<const char*> requestedDeviceLayers;
+
+		VkDevice logicalDevice{ VK_NULL_HANDLE };
+	};
+
 	struct VulkanData {
+		VkInstance GetInstance() const;
+		VkPhysicalDevice GetPhysicalDevice() const;
+		VkDevice GetLogicalDevice() const;
+
+		VulkanDeviceData& GetDeviceData();
+		const VulkanDeviceData& GetDeviceData() const;
+
+		VulkanQueueFamily& GetGraphicsQueueFamily();
+		const VulkanQueueFamily& GetGraphicsQueueFamily() const;
+
+		VulkanQueueFamily& GetPresentationQueueFamily();
+		const VulkanQueueFamily& GetPresentationQueueFamily() const;
+
+		VulkanDeviceData deviceData{};
 		VulkanInstanceData instanceData{};
+
+		VkSurfaceKHR surface{VK_NULL_HANDLE};
 	};
 
 	class GpuApiCtxVk : public GpuApiCtx {
@@ -55,7 +119,7 @@ namespace ember {
 		const SettingsVk& GetSettingsVk() const;
 
 	private:
-		void InitializeVulkanInstance(Window* window);
+		void EnumerateVulkanInstanceExtensions();
 
 		std::vector<VkExtensionProperties> EnumerateSupportedVulkanInstanceExtensions() const;
 		std::vector<const char*> EnumerateRequestedVulkanInstanceExtensions(WindowApiType windowApiType) const;
@@ -68,6 +132,8 @@ namespace ember {
 			const std::vector<const char*>& requestedExtensions) const;
 
 #if defined(DEBUG) || defined(_DEBUG)
+		void EnumerateVulkanInstanceLayers();
+
 		std::vector<VkLayerProperties> EnumerateSupportedVulkanInstanceLayers() const;
 		std::vector<const char*> EnumerateRequestedVulkanInstanceLayers() const;
 
@@ -80,6 +146,55 @@ namespace ember {
 #endif
 
 		void CreateVulkanInstance();
+
+#if defined(DEBUG) || defined(_DEBUG)
+		void CreateVulkanDebugMessenger();
+		void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+		void DestroyVulkanDebugMessenger();
+		static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
+			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+			VkDebugUtilsMessageTypeFlagsEXT messageTypes,
+			const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+			void* pUserData);
+#endif
+
+		void CreateVulkanWindowSurface();
+		void CreateVulkanWindowGlfwSurface();
+#ifdef EMBER_PLATFORM_WIN32
+		void CreateVulkanWindowWin32Surface();
+#elif EMBER_PLATFORM_LINUX
+		void CreateVulkanWaylandSurface();
+		void CreateVulkanX11Surface();
+#endif
+
+		void PickVulkanPhysicalDevice();
+		std::vector<VulkanPhysicalDeviceInfo> EnumerateSupportedVulkanPhysicalDevices();
+
+		void LogSupportedVulkanDevices(const std::vector<VulkanPhysicalDeviceInfo>& supportedDevices) const;
+		void LogDeviceInfo(const VulkanPhysicalDeviceInfo& deviceInfo) const;
+
+		bool IsPhysicalDeviceSuitable(const VulkanPhysicalDeviceInfo& deviceInfo) const;
+
+		VkPhysicalDeviceProperties GetVulkanPhysicalDeviceProperties(VkPhysicalDevice device) const;
+		VkPhysicalDeviceFeatures GetVulkanPhysicalDeviceFeatures(VkPhysicalDevice device) const;
+		VulkanQueueFamilyIndices GetVulkanPhysicalDeviceQueueFamilies(VkPhysicalDevice device) const;
+
+		VkPhysicalDeviceFeatures EnumerateRequestedDeviceFeatures() const;
+		bool RequestedVulkanDeviceFeaturesSupported(
+			const VkPhysicalDeviceFeatures& supportedFeatures,
+			const VkPhysicalDeviceFeatures& requestedFeatures) const;
+
+		std::vector<VkExtensionProperties> EnumerateSupportedDeviceExtensions(VkPhysicalDevice device) const;
+		std::vector<const char*> EnumerateRequestedDeviceExtensions() const;
+
+		void LogSupportedDeviceExtensions(const std::vector<VkExtensionProperties>& extensions) const;
+		void LogRequestedDeviceExtensions(const std::vector<const char*>& requestedExtensions) const;
+
+		bool RequestedVulkanDeviceExtensionsSupported(
+			const std::vector<VkExtensionProperties>& supportedExtensions,
+			const std::vector<const char*>& requestedExtensions) const;
+
+		void CreateVulkanLogicalDevice();
 
 		VulkanData vulkanData;
 		SettingsVk settings;
