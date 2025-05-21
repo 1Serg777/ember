@@ -58,6 +58,8 @@ namespace ember {
 		void SetResizability(int resize);
 		void SetVisibility(int visibility);
 		void SetClientApi(int api);
+
+		void SetFramebufferDimensions();
 		void RegisterGlfwCallbacks();
 
 		void ProcessEvents();

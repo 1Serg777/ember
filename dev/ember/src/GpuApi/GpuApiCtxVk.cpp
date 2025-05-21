@@ -2,10 +2,14 @@
 
 #include <Windows.h>
 #undef CreateWindow
+#undef min
+#undef max
 #include "Window/WindowGlfw.h"
 #include <vulkan/vulkan_win32.h>
 
+#include <algorithm>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <unordered_set>
 
@@ -63,12 +67,29 @@ namespace ember {
 	VkDevice VulkanData::GetLogicalDevice() const {
 		return deviceData.logicalDevice;
 	}
+	VkSwapchainKHR VulkanData::GetSwapchain() const {
+		return deviceData.swapchainData.swapchain;
+	}
 
 	VulkanDeviceData& VulkanData::GetDeviceData() {
 		return deviceData;
 	}
 	const VulkanDeviceData& VulkanData::GetDeviceData() const {
 		return deviceData;
+	}
+
+	VulkanSwapchainData& VulkanData::GetSwapchainData() {
+		return deviceData.swapchainData;
+	}
+	const VulkanSwapchainData& VulkanData::GetSwapchainData() const {
+		return deviceData.swapchainData;
+	}
+
+	VulkanPhysicalDeviceInfo& VulkanData::GetPhysicalDeviceInfo() {
+		return deviceData.physicalDeviceInfo;
+	}
+	const VulkanPhysicalDeviceInfo& VulkanData::GetPhysicalDeviceInfo() const {
+		return deviceData.physicalDeviceInfo;
 	}
 
 	VulkanQueueFamily& VulkanData::GetGraphicsQueueFamily() {
@@ -111,12 +132,16 @@ namespace ember {
 
 		PickVulkanPhysicalDevice();
 		CreateVulkanLogicalDevice();
+
+		PickSwapchainProperties();
+		CreateSwapchain();
 	}
 	void GpuApiCtxVk::InitializeGuiContext() {
 		// TODO
 	}
 
 	void GpuApiCtxVk::Terminate() {
+		vkDestroySwapchainKHR(vulkanData.GetLogicalDevice(), vulkanData.GetSwapchain(), nullptr);
 		vkDestroyDevice(vulkanData.GetLogicalDevice(), nullptr);
 		vkDestroySurfaceKHR(vulkanData.GetInstance(), vulkanData.surface, nullptr);
 		DestroyVulkanDebugMessenger();
@@ -538,15 +563,12 @@ namespace ember {
 			return false;
 		}
 		// The swap chain support must be adequate.
-		/*
-		bool swapchainAdequate =
-			deviceInfo.swapchainInfo.has_value() &&
+		bool swapchainAdequate = deviceInfo.swapchainInfo.has_value() &&
 			!deviceInfo.swapchainInfo.value().formats.empty() &&
 			!deviceInfo.swapchainInfo.value().presentModes.empty();
 		if (!swapchainAdequate) {
 			return false;
 		}
-		*/
 		return true;
 	}
 
@@ -568,17 +590,7 @@ namespace ember {
 			deviceQueryInfo.deviceFeatures = GetVulkanPhysicalDeviceFeatures(deviceHandle);
 			deviceQueryInfo.deviceExtensions = EnumerateSupportedDeviceExtensions(deviceHandle);
 			deviceQueryInfo.queueFamilyIds = GetVulkanPhysicalDeviceQueueFamilies(deviceHandle);
-
-			// We should query whether the `VK_KHR_SWAPCHAIN_EXTENSION_NAME' device extension,
-			// which is going to be among requested device extensions later on,
-			// is among the supported extensions of the current device or not.
-			// Only if it is present can we retrieve information about swap chain support.
-			std::vector<const char*> checkExtensions(1);
-			checkExtensions[0] = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
-			if (RequestedVulkanDeviceExtensionsSupported(deviceQueryInfo.deviceExtensions, checkExtensions)) {
-				// deviceQueryInfo.swapchainInfo = QuerySwapchainSupport(deviceHandle);
-			}
-
+			deviceQueryInfo.swapchainInfo = QuerySwapchainSupport(deviceHandle);
 			supportedDevicesInfo[deviceIdx] = std::move(deviceQueryInfo);
 			deviceIdx++;
 		}
@@ -758,6 +770,123 @@ namespace ember {
 			vulkanData.GetPresentationQueueFamily().queueFamilyId,
 			0,
 			&vulkanData.GetPresentationQueueFamily().queueHandle);
+	}
+
+	void GpuApiCtxVk::PickSwapchainProperties() {
+		const VulkanSwapchainQueryInfo& swapchainInfo = vulkanData.GetPhysicalDeviceInfo().swapchainInfo.value();
+		VulkanSwapchainData& swapchainData = vulkanData.GetSwapchainData();
+		swapchainData.swapchainSurfaceFormat = PickSwapchainSurfaceFormat(swapchainInfo.formats);
+		swapchainData.swapchainPresentMode = PickSwapchainPresentFormat(swapchainInfo.presentModes);
+		swapchainData.swapchainExtent = PickSwapchainExtent(swapchainInfo.capabilities);
+
+		uint32_t requestedSwapchainImageCount = swapchainInfo.capabilities.minImageCount + 1;
+		// 'maxImageCount = 0' is a special value which means that there's no maximum value.
+		if (swapchainInfo.capabilities.maxImageCount > 0 &&
+			requestedSwapchainImageCount > swapchainInfo.capabilities.maxImageCount) {
+			requestedSwapchainImageCount = swapchainInfo.capabilities.maxImageCount;
+		}
+		swapchainData.requestedSwapchainImageCount = requestedSwapchainImageCount;
+	}
+
+	VulkanSwapchainQueryInfo GpuApiCtxVk::QuerySwapchainSupport(VkPhysicalDevice device) const {
+		VulkanSwapchainQueryInfo swapchainInfo{};
+		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, vulkanData.surface, &swapchainInfo.capabilities);
+
+		uint32_t surfaceFormatCount{ 0 };
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, vulkanData.surface, &surfaceFormatCount, nullptr);
+		if (surfaceFormatCount) {
+			swapchainInfo.formats.resize(surfaceFormatCount);
+			vkGetPhysicalDeviceSurfaceFormatsKHR(
+				device, vulkanData.surface, &surfaceFormatCount, swapchainInfo.formats.data());
+		}
+
+		uint32_t presentModeCount{ 0 };
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, vulkanData.surface, &presentModeCount, nullptr);
+		if (presentModeCount) {
+			swapchainInfo.presentModes.resize(presentModeCount);
+			vkGetPhysicalDeviceSurfacePresentModesKHR(
+				device, vulkanData.surface, &presentModeCount, swapchainInfo.presentModes.data());
+		}
+		return swapchainInfo;
+	}
+
+	VkSurfaceFormatKHR GpuApiCtxVk::PickSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) {
+		for (const VkSurfaceFormatKHR& format : formats) {
+			if (format.format == VK_FORMAT_B8G8R8A8_SRGB &&
+				format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+				return format;
+			}
+		}
+		return formats[0];
+	}
+	VkPresentModeKHR GpuApiCtxVk::PickSwapchainPresentFormat(const std::vector<VkPresentModeKHR>& presentModes) {
+		for (const VkPresentModeKHR& presentMode : presentModes) {
+			if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+				return presentMode;
+			}
+		}
+		return VK_PRESENT_MODE_FIFO_KHR;
+	}
+	VkExtent2D GpuApiCtxVk::PickSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+		if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max() ||
+			capabilities.currentExtent.height != std::numeric_limits<uint32_t>::max()) {
+			return capabilities.currentExtent;
+		} else {
+			int width = window->GetFramebufferWidth();
+			int height = window->GetFramebufferHeight();
+			VkExtent2D swapchainExtent{};
+			swapchainExtent.width = std::clamp(
+				static_cast<uint32_t>(width),
+				capabilities.minImageExtent.width,
+				capabilities.maxImageExtent.width);
+			swapchainExtent.height = std::clamp(
+				static_cast<uint32_t>(height),
+				capabilities.minImageExtent.height,
+				capabilities.maxImageExtent.height);
+			return swapchainExtent;
+		}
+	}
+
+	void GpuApiCtxVk::CreateSwapchain() {
+		const VulkanDeviceData& deviceData = vulkanData.deviceData;
+		const VulkanPhysicalDeviceInfo& deviceQueryInfo = vulkanData.deviceData.physicalDeviceInfo;
+		const VulkanSwapchainQueryInfo& swapchainInfo = deviceQueryInfo.swapchainInfo.value();
+		VulkanSwapchainData& swapchainData = vulkanData.GetSwapchainData();
+
+		VkSwapchainCreateInfoKHR createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+		createInfo.surface = vulkanData.surface;
+		createInfo.minImageCount = swapchainData.requestedSwapchainImageCount;
+		createInfo.imageFormat = swapchainData.swapchainSurfaceFormat.format;
+		createInfo.imageColorSpace = swapchainData.swapchainSurfaceFormat.colorSpace;
+		createInfo.imageExtent = swapchainData.swapchainExtent;
+		createInfo.imageArrayLayers = 1;
+		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+		// Sharing swap chain images between different queue families
+		uint32_t graphicsQeueuFamilyId = deviceQueryInfo.queueFamilyIds.graphicsQueueFamily.value();
+		uint32_t presentQeueuFamilyId = deviceQueryInfo.queueFamilyIds.presentQueueFamily.value();
+		uint32_t queueFamilyIds[] = { graphicsQeueuFamilyId, presentQeueuFamilyId };
+		if (graphicsQeueuFamilyId != presentQeueuFamilyId) {
+			createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+			createInfo.queueFamilyIndexCount = 2;
+			createInfo.pQueueFamilyIndices = queueFamilyIds;
+		} else {
+			createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			createInfo.queueFamilyIndexCount = 0;
+			createInfo.pQueueFamilyIndices = nullptr;
+		}
+
+		createInfo.preTransform = swapchainInfo.capabilities.currentTransform; // means no transform
+		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+		createInfo.presentMode = swapchainData.swapchainPresentMode;
+		createInfo.clipped = VK_TRUE;
+		createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+		if (vkCreateSwapchainKHR(
+			deviceData.logicalDevice, &createInfo, nullptr, &swapchainData.swapchain) != VK_SUCCESS) {
+			throw std::runtime_error{ "Failed to create a swap chain" };
+		}
 	}
 
 	GpuApiCtxVk* CreateGpuApiCtxVk(Window* window) {

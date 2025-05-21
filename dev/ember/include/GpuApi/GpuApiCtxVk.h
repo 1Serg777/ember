@@ -18,6 +18,11 @@ namespace ember {
 		// TODO
 	};
 
+	struct VulkanImage {
+		VkImage image{VK_NULL_HANDLE};
+		VkImageView imageView{VK_NULL_HANDLE};
+	};
+
 	struct VulkanQueueFamilyIndices {
 		bool HasGraphicsQueueFamily() const;
 		bool HasPresentQueueFamily() const;
@@ -58,11 +63,24 @@ namespace ember {
 		std::vector<const char*> layers;
 	};
 
+	struct VulkanSwapchainData {
+		std::vector<VulkanImage> swapchainImages;
+
+		VkSwapchainKHR swapchain{ VK_NULL_HANDLE };
+
+		VkExtent2D swapchainExtent{};
+		VkSurfaceFormatKHR swapchainSurfaceFormat{};
+		VkPresentModeKHR swapchainPresentMode{};
+
+		uint32_t requestedSwapchainImageCount{};
+		uint32_t swapchainImageCount{};
+	};
+
 	struct VulkanDeviceData {
 		VulkanPhysicalDeviceInfo physicalDeviceInfo{};
 		VkPhysicalDeviceFeatures requestedFeatures{};
 
-		// VulkanSwapchainData swapchainData{};
+		VulkanSwapchainData swapchainData{};
 
 		VulkanQueueFamily graphicsQueueFamily{};
 		VulkanQueueFamily presentationQueueFamily{};
@@ -77,9 +95,16 @@ namespace ember {
 		VkInstance GetInstance() const;
 		VkPhysicalDevice GetPhysicalDevice() const;
 		VkDevice GetLogicalDevice() const;
+		VkSwapchainKHR GetSwapchain() const;
 
 		VulkanDeviceData& GetDeviceData();
 		const VulkanDeviceData& GetDeviceData() const;
+
+		VulkanSwapchainData& GetSwapchainData();
+		const VulkanSwapchainData& GetSwapchainData() const;
+
+		VulkanPhysicalDeviceInfo& GetPhysicalDeviceInfo();
+		const VulkanPhysicalDeviceInfo& GetPhysicalDeviceInfo() const;
 
 		VulkanQueueFamily& GetGraphicsQueueFamily();
 		const VulkanQueueFamily& GetGraphicsQueueFamily() const;
@@ -195,6 +220,16 @@ namespace ember {
 			const std::vector<const char*>& requestedExtensions) const;
 
 		void CreateVulkanLogicalDevice();
+
+		void PickSwapchainProperties();
+
+		VulkanSwapchainQueryInfo QuerySwapchainSupport(VkPhysicalDevice device) const;
+
+		VkSurfaceFormatKHR PickSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
+		VkPresentModeKHR PickSwapchainPresentFormat(const std::vector<VkPresentModeKHR>& presentModes);
+		VkExtent2D PickSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+		void CreateSwapchain();
 
 		VulkanData vulkanData;
 		SettingsVk settings;

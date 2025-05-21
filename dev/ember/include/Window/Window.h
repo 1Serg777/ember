@@ -56,6 +56,9 @@ namespace ember {
 		uint32_t GetWindowWidth() const;
 		uint32_t GetWindowHeight() const;
 
+		uint32_t GetFramebufferWidth() const;
+		uint32_t GetFramebufferHeight() const;
+
 		bool IsFullScreen() const;
 		bool IsVisible() const;
 

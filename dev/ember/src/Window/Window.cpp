@@ -80,6 +80,13 @@ namespace ember {
 		return windowSettings.windowDimensions.Height();
 	}
 
+	uint32_t Window::GetFramebufferWidth() const {
+		return windowSettings.framebufferDimensions.Width();
+	}
+	uint32_t Window::GetFramebufferHeight() const {
+		return windowSettings.framebufferDimensions.Height();
+	}
+
 	bool Window::IsFullScreen() const {
 		return windowSettings.isFullscreen;
 	}

@@ -64,6 +64,7 @@ namespace ember {
             glfwTerminate();
             GLFW_ERROR("Failed to create an application window!\n");
         }
+        SetFramebufferDimensions();
         RegisterGlfwCallbacks();
     }
 
@@ -110,6 +111,15 @@ namespace ember {
     }
     void WindowGlfw::SetClientApi(int api) {
         glfwWindowHint(GLFW_CLIENT_API, api);
+    }
+    
+    void WindowGlfw::SetFramebufferDimensions() {
+        int width{0};
+        int height{0};
+        glfwGetFramebufferSize(windowHandle, &width, &height);
+        windowSettings.framebufferDimensions = Dimensions2D{
+            static_cast<uint32_t>(width), static_cast<uint32_t>(height)
+        };
     }
     void WindowGlfw::RegisterGlfwCallbacks() {
         if (!windowSettings.setCallbacks)
