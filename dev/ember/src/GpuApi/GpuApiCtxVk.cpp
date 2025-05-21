@@ -135,12 +135,15 @@ namespace ember {
 
 		PickSwapchainProperties();
 		CreateSwapchain();
+		AcquireSwapchainImages();
+		CreateSwapchainImageViews();
 	}
 	void GpuApiCtxVk::InitializeGuiContext() {
 		// TODO
 	}
 
 	void GpuApiCtxVk::Terminate() {
+		DestroySwapchainImageViews();
 		vkDestroySwapchainKHR(vulkanData.GetLogicalDevice(), vulkanData.GetSwapchain(), nullptr);
 		vkDestroyDevice(vulkanData.GetLogicalDevice(), nullptr);
 		vkDestroySurfaceKHR(vulkanData.GetInstance(), vulkanData.surface, nullptr);
@@ -887,6 +890,82 @@ namespace ember {
 			deviceData.logicalDevice, &createInfo, nullptr, &swapchainData.swapchain) != VK_SUCCESS) {
 			throw std::runtime_error{ "Failed to create a swap chain" };
 		}
+	}
+	void GpuApiCtxVk::AcquireSwapchainImages() {
+		// Now we can acquire handles to the swap chain images.
+		// Remember that we only specified the minimum number of swap chain images,
+		// but the implementation is free to instantiate more, so we have to query that as well.
+		VulkanDeviceData& deviceData = vulkanData.GetDeviceData();
+		VulkanSwapchainData& swapchainData = deviceData.swapchainData;
+
+		std::vector<VkImage> swapchainImagesTmp;
+		vkGetSwapchainImagesKHR(
+			deviceData.logicalDevice,
+			swapchainData.swapchain,
+			&swapchainData.swapchainImageCount, nullptr);
+		swapchainImagesTmp.resize(swapchainData.swapchainImageCount);
+		vkGetSwapchainImagesKHR(
+			deviceData.logicalDevice,
+			swapchainData.swapchain,
+			&swapchainData.swapchainImageCount,
+			swapchainImagesTmp.data());
+
+		swapchainData.swapchainImages.resize(swapchainData.swapchainImageCount);
+		for (uint32_t idx = 0; idx < swapchainData.swapchainImageCount; idx++) {
+			swapchainData.swapchainImages[idx].image = swapchainImagesTmp[idx];
+		}
+		/*
+		int counter{ 0 };
+		std::for_each(
+			swapchainData.swapchainImages.begin(),
+			swapchainData.swapchainImages.end(),
+			[&](VulkanPipelineImage& pipelineImage) {
+				pipelineImage.image = swapchainImagesTmp[counter];
+				counter++;
+			});
+		*/
+	}
+	void GpuApiCtxVk::CreateSwapchainImageViews() {
+		VulkanDeviceData& deviceData = vulkanData.GetDeviceData();
+		VulkanSwapchainData& swapchainData = vulkanData.GetSwapchainData();
+		for (uint32_t idx = 0; idx < swapchainData.swapchainImageCount; idx++) {
+			VkImageViewCreateInfo createInfo{};
+			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			createInfo.image = swapchainData.swapchainImages[idx].image;
+			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			createInfo.format = swapchainData.swapchainSurfaceFormat.format;
+			createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+			createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+			createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+			createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+			createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			createInfo.subresourceRange.baseMipLevel = 0;
+			createInfo.subresourceRange.levelCount = 1;
+			createInfo.subresourceRange.baseArrayLayer = 0;
+			createInfo.subresourceRange.layerCount = 1;
+			if (vkCreateImageView(
+				deviceData.logicalDevice, &createInfo, nullptr,
+				&swapchainData.swapchainImages[idx].imageView) != VK_SUCCESS) {
+				throw std::runtime_error{ "Failed to create an image view for a swap chain image!" };
+			}
+		}
+	}
+	void GpuApiCtxVk::DestroySwapchainImageViews() {
+		VulkanDeviceData& deviceData = vulkanData.GetDeviceData();
+		VulkanSwapchainData& swapchainData = vulkanData.GetSwapchainData();
+		/*
+		for (uint32_t idx = 0; idx < swapchainData.swapchainImageCount; idx++) {
+			vkDestroyImageView(deviceData.logicalDevice, swapchainData.swapchainImages[idx].imageView, nullptr);
+			pipelineImage.imageView = VK_NULL_HANDLE;
+		}
+		*/
+		std::for_each(
+			swapchainData.swapchainImages.begin(),
+			swapchainData.swapchainImages.end(),
+			[&](VulkanImage& vulkanImage) {
+				vkDestroyImageView(deviceData.logicalDevice, vulkanImage.imageView, nullptr);
+				vulkanImage.imageView = VK_NULL_HANDLE;
+			});
 	}
 
 	GpuApiCtxVk* CreateGpuApiCtxVk(Window* window) {

@@ -230,6 +230,9 @@ namespace ember {
 		VkExtent2D PickSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 		void CreateSwapchain();
+		void AcquireSwapchainImages();
+		void CreateSwapchainImageViews();
+		void DestroySwapchainImageViews();
 
 		VulkanData vulkanData;
 		SettingsVk settings;
