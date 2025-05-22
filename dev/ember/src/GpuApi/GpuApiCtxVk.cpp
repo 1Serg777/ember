@@ -137,6 +137,8 @@ namespace ember {
 		CreateSwapchain();
 		AcquireSwapchainImages();
 		CreateSwapchainImageViews();
+
+		// TODO: pipeline state object creation
 	}
 	void GpuApiCtxVk::InitializeGuiContext() {
 		// TODO
