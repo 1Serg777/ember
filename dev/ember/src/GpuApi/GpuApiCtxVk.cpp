@@ -106,6 +106,13 @@ namespace ember {
 		return deviceData.presentationQueueFamily;
 	}
 
+	VulkanSynchronizationObjects& VulkanData::GetSynchronizationObjects(uint32_t idx) {
+		return syncObjects[idx];
+	}
+	const VulkanSynchronizationObjects& VulkanData::GetSynchronizationObjects(uint32_t idx) const {
+		return syncObjects[idx];
+	}
+
 	GpuApiCtxVk::GpuApiCtxVk(const SettingsVk& settings, Window* window)
 		: settings(settings), window(window) {
 	}
@@ -140,12 +147,20 @@ namespace ember {
 
 		CreateGraphicsPipeline();
 		CreateFramebuffers();
+
+		CreateCommandPools();
+		CreateCommandBuffers();
+
+		CreateSynchronizationObjects();
 	}
 	void GpuApiCtxVk::InitializeGuiContext() {
 		// TODO
 	}
 
 	void GpuApiCtxVk::Terminate() {
+		Synchronize();
+		DestroySynchronizationObjects();
+		DestroyCommandPools();
 		DestroyFramebuffers();
 		graphicsPipeline->DestroyPipeline(vulkanData.GetLogicalDevice());
 		renderPass->DestroyRenderPass(vulkanData.GetLogicalDevice());
@@ -175,7 +190,58 @@ namespace ember {
 		// TODO
 	}
 	void GpuApiCtxVk::DrawFrame() {
-		// TODO
+		vkWaitForFences(
+			vulkanData.GetLogicalDevice(),
+			1, &vulkanData.GetSynchronizationObjects(frame).frameFinishedFence,
+			VK_TRUE, UINT64_MAX);
+		vkResetFences(
+			vulkanData.GetLogicalDevice(),
+			1, &vulkanData.GetSynchronizationObjects(frame).frameFinishedFence);
+
+		uint32_t imageIdx{0};
+		VkResult acquireImageResult = vkAcquireNextImageKHR(
+			vulkanData.GetLogicalDevice(),
+			vulkanData.GetSwapchain(),
+			UINT64_MAX, 
+			vulkanData.syncObjects[frame].imageAvailableSemaphore,
+			VK_NULL_HANDLE,
+			&imageIdx);
+
+		vkResetCommandBuffer(vulkanData.GetGraphicsQueueFamily().commandBuffers[frame], 0);
+		RecordCommandBuffer(vulkanData.GetGraphicsQueueFamily().commandBuffers[frame], imageIdx);
+
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		VkSemaphore waitSemaphores[]{vulkanData.GetSynchronizationObjects(frame).imageAvailableSemaphore};
+		VkPipelineStageFlags waitStages[]{VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &vulkanData.GetGraphicsQueueFamily().commandBuffers[frame];
+		VkSemaphore signalSemaphores[]{vulkanData.GetSynchronizationObjects(frame).renderingFinishedSemaphore};
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
+		if (vkQueueSubmit(
+			vulkanData.GetGraphicsQueueFamily().queueHandle,
+			1, &submitInfo,
+			vulkanData.GetSynchronizationObjects(frame).frameFinishedFence) != VK_SUCCESS) {
+			throw std::runtime_error{ "Failed to submit a command buffer to the graphics queue!" };
+		}
+
+		VkPresentInfoKHR presentInfo{};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = signalSemaphores;
+		VkSwapchainKHR swapChains[] = { vulkanData.GetSwapchain() };
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapChains;
+		presentInfo.pImageIndices = &imageIdx;
+		presentInfo.pResults = nullptr;
+		VkResult presentResult = vkQueuePresentKHR(vulkanData.GetPresentationQueueFamily().queueHandle, &presentInfo);
+		if (presentResult != VK_SUCCESS) {
+			throw std::runtime_error{ "Failed to present the swap chain image!" };
+		}
 	}
 	void GpuApiCtxVk::Present() {
 		// TODO
@@ -1073,6 +1139,134 @@ namespace ember {
 			framebuffer.DestroyFramebuffer(vulkanData.GetLogicalDevice());
 			framebuffer.ClearAttachments();
 		}
+	}
+
+	void GpuApiCtxVk::CreateCommandPools() {
+		VulkanQueueFamily& graphicsQueueFamily = vulkanData.GetGraphicsQueueFamily();
+		VkCommandPoolCreateInfo graphicsCommandPoolInfo{};
+		graphicsCommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		graphicsCommandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		graphicsCommandPoolInfo.queueFamilyIndex = graphicsQueueFamily.queueFamilyId;
+		if (vkCreateCommandPool(
+			vulkanData.GetLogicalDevice(),
+			&graphicsCommandPoolInfo,
+			nullptr,
+			&graphicsQueueFamily.commandPool) != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create a graphics command pool!");
+		}
+	}
+	void GpuApiCtxVk::DestroyCommandPools() {
+		VulkanQueueFamily& graphicsQueueFamily = vulkanData.GetGraphicsQueueFamily();
+		vkDestroyCommandPool(vulkanData.GetLogicalDevice(), graphicsQueueFamily.commandPool, nullptr);
+	}
+	void GpuApiCtxVk::CreateCommandBuffers() {
+		VulkanQueueFamily& graphicsQueueFamily = vulkanData.GetGraphicsQueueFamily();
+		graphicsQueueFamily.commandBuffers.resize(framesInFlight);
+
+		VkCommandBufferAllocateInfo commandBufferInfo{};
+		commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		commandBufferInfo.commandPool = graphicsQueueFamily.commandPool;
+		commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		commandBufferInfo.commandBufferCount = 1;
+		for (uint32_t i = 0; i < framesInFlight; i++) {
+			if (vkAllocateCommandBuffers(
+				vulkanData.GetLogicalDevice(),
+				&commandBufferInfo,
+				&graphicsQueueFamily.commandBuffers[i]) != VK_SUCCESS) {
+				throw std::runtime_error{ "Failed to allocate a graphics command buffer!" };
+			}
+		}
+	}
+	void GpuApiCtxVk::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t swapchainImageIdx) {
+		VkCommandBufferBeginInfo commandBufferBeginInfo{};
+		commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		if (vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo) != VK_SUCCESS) {
+			throw std::runtime_error{ "Failed to start a command buffer!" };
+		}
+
+		VkRenderPassBeginInfo renderPassBeginInfo{};
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.renderPass = renderPass->GetRenderPass();
+		renderPassBeginInfo.framebuffer = framebuffers[swapchainImageIdx].GetFramebuffer();
+		renderPassBeginInfo.renderArea.offset = VkOffset2D{ 0, 0 };
+		renderPassBeginInfo.renderArea.extent = vulkanData.GetSwapchainData().swapchainExtent;
+
+		VkClearValue clearValue{clearColor};
+		renderPassBeginInfo.clearValueCount = 1;
+		renderPassBeginInfo.pClearValues = &clearValue;
+
+		vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->GetPipeline());
+
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = static_cast<float>(vulkanData.GetSwapchainData().swapchainExtent.width);
+		viewport.height = static_cast<float>(vulkanData.GetSwapchainData().swapchainExtent.height);
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+		VkRect2D scissors{};
+		scissors.offset = VkOffset2D{0, 0};
+		scissors.extent = vulkanData.GetSwapchainData().swapchainExtent;
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissors);
+
+		// The draw call
+		// VkBuffer vertexBuffers[] = { dynamicVertexBuffer->GetBufferHandle() };
+		// VkBuffer vertexBuffers[] = { staticVertexBuffer->GetBufferHandle() };
+		// VkDeviceSize offsets[] = { 0 };
+		// vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+		// vkCmdDraw(commandBuffer, staticVertexBuffer->GetVertexCount(), 1, 0, 0);
+		// vkCmdDraw(commandBuffer, vertexBuffer->GetVertexCount(), 1, 0, 0);
+		// vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+		vkCmdEndRenderPass(commandBuffer);
+		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+			throw std::runtime_error{ "Failed to end a command buffer!" };
+		}
+	}
+
+	void GpuApiCtxVk::CreateSynchronizationObjects() {
+		vulkanData.syncObjects.resize(framesInFlight);
+		for (uint32_t i = 0; i < framesInFlight; i++) {
+			VkSemaphoreCreateInfo semaphoreCreateInfo{};
+			semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			if (vkCreateSemaphore(
+				vulkanData.GetLogicalDevice(),
+				&semaphoreCreateInfo,
+				nullptr,
+				&vulkanData.syncObjects[i].imageAvailableSemaphore) != VK_SUCCESS) {
+				throw std::runtime_error{ "Failed to create an 'imageAvailableSemaphore' semaphore!" };
+			}
+			if (vkCreateSemaphore(
+				vulkanData.GetLogicalDevice(),
+				&semaphoreCreateInfo,
+				nullptr,
+				&vulkanData.syncObjects[i].renderingFinishedSemaphore) != VK_SUCCESS) {
+				throw std::runtime_error{ "Failed to create an 'renderingFinishedSemaphore' semaphore!" };
+			}
+			VkFenceCreateInfo fenceCreateInfo{};
+			fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+			fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+			if (vkCreateFence(
+				vulkanData.GetLogicalDevice(),
+				&fenceCreateInfo,
+				nullptr,
+				&vulkanData.syncObjects[i].frameFinishedFence) != VK_SUCCESS) {
+				throw std::runtime_error{ "Failed to create an 'frameFinishedFence' fence!" };
+			}
+		}
+	}
+	void GpuApiCtxVk::DestroySynchronizationObjects() {
+		for (uint32_t i = 0; i < framesInFlight; i++) {
+			vkDestroySemaphore(vulkanData.GetLogicalDevice(), vulkanData.syncObjects[i].imageAvailableSemaphore, nullptr);
+			vkDestroySemaphore(vulkanData.GetLogicalDevice(), vulkanData.syncObjects[i].renderingFinishedSemaphore, nullptr);
+			vkDestroyFence(vulkanData.GetLogicalDevice(), vulkanData.syncObjects[i].frameFinishedFence, nullptr);
+		}
+	}
+	void GpuApiCtxVk::Synchronize() {
+		vkDeviceWaitIdle(vulkanData.GetLogicalDevice());
 	}
 
 	GpuApiCtxVk* CreateGpuApiCtxVk(Window* window) {

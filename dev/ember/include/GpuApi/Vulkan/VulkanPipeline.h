@@ -15,9 +15,6 @@ namespace ember {
 
     class VulkanGraphicsPipeline {
     public:
-        void CreatePipeline(VkDevice device);
-        void DestroyPipeline(VkDevice device);
-
         void SetAttachmentCount(uint32_t attachmentCount);
 
         void SetVertexShaderModule(const VulkanShaderModule& vertexShaderModule);
@@ -46,6 +43,10 @@ namespace ember {
 
         void SetRenderPass(std::shared_ptr<VulkanRenderPass> renderPass);
         void SetPipelineLayout(std::shared_ptr<VulkanPipelineLayout> pipelineLayout);
+
+        void CreatePipeline(VkDevice device);
+        void DestroyPipeline(VkDevice device);
+        VkPipeline GetPipeline() const;
 
     private:
         void EnableDefaultBlendingAttachmentState(uint32_t attachmentIdx);

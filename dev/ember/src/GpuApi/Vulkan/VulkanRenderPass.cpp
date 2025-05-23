@@ -107,18 +107,16 @@ namespace ember {
 		renderPassInfo.subpassCount = static_cast<uint32_t>(subpassDescs.size());
 		renderPassInfo.pSubpasses = subpassDescs.data();
 
-		/*
-		VkSubpassDependency subpassDependency{};
-		subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-		subpassDependency.dstSubpass = 0;
-		subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		subpassDependency.srcAccessMask = 0;
-		subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-		*/
+		//VkSubpassDependency subpassDependency{};
+		//subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		//subpassDependency.dstSubpass = 0;
+		//subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		//subpassDependency.srcAccessMask = 0;
+		//subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		//subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-		// renderPassInfo.dependencyCount = 1;
-		// renderPassInfo.pDependencies = &subpassDependency;
+		//renderPassInfo.dependencyCount = 1;
+		//renderPassInfo.pDependencies = &subpassDependency;
 
 		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
 			throw std::runtime_error{ "Failed to create a Render Pass!" };

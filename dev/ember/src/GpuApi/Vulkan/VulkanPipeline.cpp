@@ -5,51 +5,6 @@
 
 namespace ember {
 
-    void VulkanGraphicsPipeline::CreatePipeline(VkDevice device) {
-        bool vertexShaderExists = vertexShaderModule.has_value();
-        bool fragmentShaderExists = fragmentShaderModule.has_value();
-        if (!vertexShaderExists || !fragmentShaderExists) {
-            throw std::runtime_error{ "Mandatory Vertex and/or Fragment shader(s) is (are) not present!" };
-        }
-        VkPipelineShaderStageCreateInfo shaderStages[] = {
-            CreateVertexShaderStageCreateInfo(),
-            CreateFragmentShaderStageCreateInfo()
-        };
-        VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = CreateVulkanVertexInputStateInfo();
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateInfo = CreateVulkanInputAssemblyStateInfo();
-        VkPipelineViewportStateCreateInfo viewportStateInfo = CreateVulkanViewportStateInfo();
-        VkPipelineRasterizationStateCreateInfo rasterizationStateInfo = CreateVulkanRasterizationStateInfo();
-        VkPipelineMultisampleStateCreateInfo multisampleStateInfo = CreateVulkanMultisampleStateInfo();
-        VkPipelineColorBlendStateCreateInfo blendingStateInfo = CreateVulkanBlendingStateInfo();
-        VkPipelineDynamicStateCreateInfo dynamicStateInfo = CreateVulkanDynamicStateInfo();
-
-        VkGraphicsPipelineCreateInfo graphicsPipelineInfo{};
-        graphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        graphicsPipelineInfo.stageCount = 2;
-        graphicsPipelineInfo.pStages = shaderStages;
-        graphicsPipelineInfo.pVertexInputState = &vertexInputStateInfo;
-        graphicsPipelineInfo.pInputAssemblyState = &inputAssemblyStateInfo;
-        graphicsPipelineInfo.pViewportState = &viewportStateInfo;
-        graphicsPipelineInfo.pRasterizationState = &rasterizationStateInfo;
-        graphicsPipelineInfo.pMultisampleState = &multisampleStateInfo;
-        graphicsPipelineInfo.pDepthStencilState = nullptr; // For now!
-        graphicsPipelineInfo.pColorBlendState = &blendingStateInfo;
-        graphicsPipelineInfo.pDynamicState = &dynamicStateInfo;
-        graphicsPipelineInfo.layout = pipelineLayout->GetPipelineLayout();
-        graphicsPipelineInfo.renderPass = renderPass->GetRenderPass();
-        graphicsPipelineInfo.subpass = 0;
-        graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-        graphicsPipelineInfo.basePipelineIndex = -1;
-
-        if (vkCreateGraphicsPipelines(
-            device, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
-            throw std::runtime_error{ "Failed to create a Graphics Pipeline!" };
-        }
-    }
-    void VulkanGraphicsPipeline::DestroyPipeline(VkDevice device) {
-        vkDestroyPipeline(device, pipeline, nullptr);
-    }
-
     void VulkanGraphicsPipeline::SetAttachmentCount(uint32_t attachmentCount) {
         blendingAttachmentStates.resize(attachmentCount);
     }
@@ -121,6 +76,54 @@ namespace ember {
     }
     void VulkanGraphicsPipeline::SetPipelineLayout(std::shared_ptr<VulkanPipelineLayout> pipelineLayout) {
         this->pipelineLayout = pipelineLayout;
+    }
+
+    void VulkanGraphicsPipeline::CreatePipeline(VkDevice device) {
+        bool vertexShaderExists = vertexShaderModule.has_value();
+        bool fragmentShaderExists = fragmentShaderModule.has_value();
+        if (!vertexShaderExists || !fragmentShaderExists) {
+            throw std::runtime_error{ "Mandatory Vertex and/or Fragment shader(s) is (are) not present!" };
+        }
+        VkPipelineShaderStageCreateInfo shaderStages[] = {
+            CreateVertexShaderStageCreateInfo(),
+            CreateFragmentShaderStageCreateInfo()
+        };
+        VkPipelineVertexInputStateCreateInfo vertexInputStateInfo = CreateVulkanVertexInputStateInfo();
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateInfo = CreateVulkanInputAssemblyStateInfo();
+        VkPipelineViewportStateCreateInfo viewportStateInfo = CreateVulkanViewportStateInfo();
+        VkPipelineRasterizationStateCreateInfo rasterizationStateInfo = CreateVulkanRasterizationStateInfo();
+        VkPipelineMultisampleStateCreateInfo multisampleStateInfo = CreateVulkanMultisampleStateInfo();
+        VkPipelineColorBlendStateCreateInfo blendingStateInfo = CreateVulkanBlendingStateInfo();
+        VkPipelineDynamicStateCreateInfo dynamicStateInfo = CreateVulkanDynamicStateInfo();
+
+        VkGraphicsPipelineCreateInfo graphicsPipelineInfo{};
+        graphicsPipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        graphicsPipelineInfo.stageCount = 2;
+        graphicsPipelineInfo.pStages = shaderStages;
+        graphicsPipelineInfo.pVertexInputState = &vertexInputStateInfo;
+        graphicsPipelineInfo.pInputAssemblyState = &inputAssemblyStateInfo;
+        graphicsPipelineInfo.pViewportState = &viewportStateInfo;
+        graphicsPipelineInfo.pRasterizationState = &rasterizationStateInfo;
+        graphicsPipelineInfo.pMultisampleState = &multisampleStateInfo;
+        graphicsPipelineInfo.pDepthStencilState = nullptr; // For now!
+        graphicsPipelineInfo.pColorBlendState = &blendingStateInfo;
+        graphicsPipelineInfo.pDynamicState = &dynamicStateInfo;
+        graphicsPipelineInfo.layout = pipelineLayout->GetPipelineLayout();
+        graphicsPipelineInfo.renderPass = renderPass->GetRenderPass();
+        graphicsPipelineInfo.subpass = 0;
+        graphicsPipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+        graphicsPipelineInfo.basePipelineIndex = -1;
+
+        if (vkCreateGraphicsPipelines(
+            device, VK_NULL_HANDLE, 1, &graphicsPipelineInfo, nullptr, &pipeline) != VK_SUCCESS) {
+            throw std::runtime_error{ "Failed to create a Graphics Pipeline!" };
+        }
+    }
+    void VulkanGraphicsPipeline::DestroyPipeline(VkDevice device) {
+        vkDestroyPipeline(device, pipeline, nullptr);
+    }
+    VkPipeline VulkanGraphicsPipeline::GetPipeline() const {
+        return pipeline;
     }
 
     void VulkanGraphicsPipeline::EnableDefaultBlendingAttachmentState(uint32_t attachmentIdx) {

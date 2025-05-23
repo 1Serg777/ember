@@ -72,7 +72,7 @@ namespace ember {
 	struct VulkanSwapchainData {
 		std::vector<VulkanImage> swapchainImages;
 
-		VkSwapchainKHR swapchain{ VK_NULL_HANDLE };
+		VkSwapchainKHR swapchain{VK_NULL_HANDLE};
 
 		VkExtent2D swapchainExtent{};
 		VkSurfaceFormatKHR swapchainSurfaceFormat{};
@@ -94,7 +94,13 @@ namespace ember {
 		std::vector<const char*> requestedDeviceExtensions;
 		std::vector<const char*> requestedDeviceLayers;
 
-		VkDevice logicalDevice{ VK_NULL_HANDLE };
+		VkDevice logicalDevice{VK_NULL_HANDLE};
+	};
+
+	struct VulkanSynchronizationObjects {
+		VkSemaphore imageAvailableSemaphore{VK_NULL_HANDLE};
+		VkSemaphore renderingFinishedSemaphore{VK_NULL_HANDLE};
+		VkFence frameFinishedFence{VK_NULL_HANDLE};
 	};
 
 	struct VulkanData {
@@ -118,9 +124,12 @@ namespace ember {
 		VulkanQueueFamily& GetPresentationQueueFamily();
 		const VulkanQueueFamily& GetPresentationQueueFamily() const;
 
+		VulkanSynchronizationObjects& GetSynchronizationObjects(uint32_t idx);
+		const VulkanSynchronizationObjects& GetSynchronizationObjects(uint32_t idx) const;
+
 		VulkanDeviceData deviceData{};
 		VulkanInstanceData instanceData{};
-
+		std::vector<VulkanSynchronizationObjects> syncObjects;
 		VkSurfaceKHR surface{VK_NULL_HANDLE};
 	};
 
@@ -247,6 +256,15 @@ namespace ember {
 		void CreateFramebuffers();
 		void DestroyFramebuffers();
 
+		void CreateCommandPools();
+		void DestroyCommandPools();
+		void CreateCommandBuffers();
+		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t swapchainImageIdx);
+
+		void CreateSynchronizationObjects();
+		void DestroySynchronizationObjects();
+		void Synchronize();
+
 		VulkanData vulkanData;
 		Window* window{nullptr};
 
@@ -255,6 +273,11 @@ namespace ember {
 		std::shared_ptr<VulkanGraphicsPipeline> graphicsPipeline;
 		std::shared_ptr<VulkanRenderPass> renderPass;
 		std::shared_ptr<VulkanPipelineLayout> pipelineLayout;
+
+		VkClearColorValue clearColor{0.0f, 0.0f, 0.0f, 1.0f};
+
+		uint32_t framesInFlight{1};
+		uint32_t frame{0};
 
 		SettingsVk settings;
 	};
