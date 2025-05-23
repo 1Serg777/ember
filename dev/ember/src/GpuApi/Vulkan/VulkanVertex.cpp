@@ -1,4 +1,4 @@
-#include "Renderer/Vulkan/VertexVulkan.h"
+#include "GpuApi/Vulkan/VulkanVertex.h"
 
 namespace ember {
 

@@ -4,9 +4,15 @@
 #include "GpuApi/GpuApiCtx.h"
 #include "Window/Window.h"
 
+#include "GpuApi/Vulkan/VulkanPipeline.h"
+#include "GpuApi/Vulkan/VulkanRenderPass.h"
+#include "GpuApi/Vulkan/VulkanPipelineLayout.h"
+#include "GpuApi/Vulkan/VulkanFramebuffer.h"
+
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 
 namespace ember {
@@ -234,9 +240,23 @@ namespace ember {
 		void CreateSwapchainImageViews();
 		void DestroySwapchainImageViews();
 
+		void CreateGraphicsPipeline();
+		void CreateRenderPass();
+		void CreatePipelineLayout();
+
+		void CreateFramebuffers();
+		void DestroyFramebuffers();
+
 		VulkanData vulkanData;
-		SettingsVk settings;
 		Window* window{nullptr};
+
+		std::vector<VulkanFramebuffer> framebuffers;
+
+		std::shared_ptr<VulkanGraphicsPipeline> graphicsPipeline;
+		std::shared_ptr<VulkanRenderPass> renderPass;
+		std::shared_ptr<VulkanPipelineLayout> pipelineLayout;
+
+		SettingsVk settings;
 	};
 
 	GpuApiCtxVk* CreateGpuApiCtxVk(Window* window);

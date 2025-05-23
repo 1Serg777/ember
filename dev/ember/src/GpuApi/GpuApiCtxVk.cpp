@@ -138,13 +138,18 @@ namespace ember {
 		AcquireSwapchainImages();
 		CreateSwapchainImageViews();
 
-		// TODO: pipeline state object creation
+		CreateGraphicsPipeline();
+		CreateFramebuffers();
 	}
 	void GpuApiCtxVk::InitializeGuiContext() {
 		// TODO
 	}
 
 	void GpuApiCtxVk::Terminate() {
+		DestroyFramebuffers();
+		graphicsPipeline->DestroyPipeline(vulkanData.GetLogicalDevice());
+		renderPass->DestroyRenderPass(vulkanData.GetLogicalDevice());
+		pipelineLayout->DestroyPipelineLayout(vulkanData.GetLogicalDevice());
 		DestroySwapchainImageViews();
 		vkDestroySwapchainKHR(vulkanData.GetLogicalDevice(), vulkanData.GetSwapchain(), nullptr);
 		vkDestroyDevice(vulkanData.GetLogicalDevice(), nullptr);
@@ -968,6 +973,106 @@ namespace ember {
 				vkDestroyImageView(deviceData.logicalDevice, vulkanImage.imageView, nullptr);
 				vulkanImage.imageView = VK_NULL_HANDLE;
 			});
+	}
+
+	void GpuApiCtxVk::CreateGraphicsPipeline() {
+		graphicsPipeline = std::make_shared<VulkanGraphicsPipeline>();
+		graphicsPipeline->SetAttachmentCount(1);
+
+		VulkanShaderModule vertexShaderModule{};
+		vertexShaderModule.shaderPath = std::filesystem::path{ "shaders/vshader.spv" };
+		vertexShaderModule.entryPoint = std::string{ "main" };
+		vertexShaderModule.shaderType = SHADER_TYPE::VERTEX_SHADER;
+		VulkanShaderFactory::CreateShaderModule(
+			vertexShaderModule, vulkanData.deviceData.logicalDevice);
+		graphicsPipeline->SetVertexShaderModule(vertexShaderModule);
+
+		VulkanShaderModule fragmentShaderModule;
+		fragmentShaderModule.shaderPath = std::filesystem::path{ "shaders/fshader.spv" };
+		fragmentShaderModule.entryPoint = std::string{ "main" };
+		fragmentShaderModule.shaderType = SHADER_TYPE::FRAGMENT_SHADER;
+		VulkanShaderFactory::CreateShaderModule(
+			fragmentShaderModule, vulkanData.deviceData.logicalDevice);
+		graphicsPipeline->SetFragmentShaderModule(fragmentShaderModule);
+
+		graphicsPipeline->AddDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+		graphicsPipeline->AddDynamicState(VK_DYNAMIC_STATE_SCISSOR);
+
+		// TODO: vertex input layout
+		graphicsPipeline->SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+		VkExtent2D swapchainExtent = vulkanData.GetSwapchainData().swapchainExtent;
+		VkViewport viewport{};
+		viewport.x = 0.0f;
+		viewport.y = 0.0f;
+		viewport.width = static_cast<float>(swapchainExtent.width);
+		viewport.height = static_cast<float>(swapchainExtent.height);
+		viewport.minDepth = 0.0f;
+		viewport.maxDepth = 1.0f;
+		graphicsPipeline->SetViewport(viewport);
+
+		VkRect2D scissors{};
+		scissors.offset = VkOffset2D{ 0, 0 };
+		scissors.extent = swapchainExtent;
+		graphicsPipeline->SetScissors(scissors);
+
+		VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
+		graphicsPipeline->SetPolygonMode(polygonMode);
+		VkCullModeFlagBits cullMode = VK_CULL_MODE_BACK_BIT;
+		graphicsPipeline->SetCullMode(cullMode);
+		VkFrontFace frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		graphicsPipeline->SetFrontFace(frontFace);
+		graphicsPipeline->SetLineWidth(1.0f);
+
+		graphicsPipeline->DisableMultisampling();
+		graphicsPipeline->SetDefaultBlendingAttachmentState(false, 0);
+
+		CreateRenderPass();
+		graphicsPipeline->SetRenderPass(renderPass);
+		CreatePipelineLayout();
+		graphicsPipeline->SetPipelineLayout(pipelineLayout);
+
+		graphicsPipeline->CreatePipeline(vulkanData.GetLogicalDevice());
+
+		VulkanShaderFactory::DestroyShaderModule(vertexShaderModule, vulkanData.deviceData.logicalDevice);
+		VulkanShaderFactory::DestroyShaderModule(fragmentShaderModule, vulkanData.deviceData.logicalDevice);
+	}
+	void GpuApiCtxVk::CreateRenderPass() {
+		renderPass = std::make_shared<VulkanRenderPass>();
+		renderPass->SetAttachmentCount(1);
+		VkFormat colorAttachmentFormat = vulkanData.GetSwapchainData().swapchainSurfaceFormat.format;
+		renderPass->SetPresentRenderTargetColorAttachment(colorAttachmentFormat, 0);
+
+		renderPass->SetSubpassCount(1);
+		renderPass->SetSubpassColorAttachmentCount(0, 1);
+		renderPass->SetSubpassColorAttachmentReference(0, 0, 0);
+
+		renderPass->CreateRenderPass(vulkanData.GetLogicalDevice());
+	}
+	void GpuApiCtxVk::CreatePipelineLayout() {
+		pipelineLayout = std::make_shared<VulkanPipelineLayout>();
+		pipelineLayout->CreatePipelineLayout(vulkanData.GetLogicalDevice());
+	}
+
+	void GpuApiCtxVk::CreateFramebuffers() {
+		const VulkanSwapchainData& swapchainData = vulkanData.GetSwapchainData();
+		framebuffers.resize(swapchainData.swapchainImages.size());
+		uint32_t imgIdx{0};
+		for (VulkanFramebuffer& framebuffer : framebuffers) {
+			framebuffer.SetFramebufferSize(
+				swapchainData.swapchainExtent.width,
+				swapchainData.swapchainExtent.height);
+			framebuffer.SetRenderPass(renderPass);
+			framebuffer.SetAttachmentCount(1);
+			framebuffer.SetAttachment(swapchainData.swapchainImages[imgIdx++].imageView, 0);
+			framebuffer.CreateFramebuffer(vulkanData.GetLogicalDevice());
+		}
+	}
+	void GpuApiCtxVk::DestroyFramebuffers() {
+		for (VulkanFramebuffer& framebuffer : framebuffers) {
+			framebuffer.DestroyFramebuffer(vulkanData.GetLogicalDevice());
+			framebuffer.ClearAttachments();
+		}
 	}
 
 	GpuApiCtxVk* CreateGpuApiCtxVk(Window* window) {

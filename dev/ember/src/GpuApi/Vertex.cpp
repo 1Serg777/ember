@@ -1,4 +1,4 @@
-#include "Renderer/Vertex.h"
+#include "GpuApi/Vertex.h"
 
 namespace ember {
 
@@ -6,21 +6,33 @@ namespace ember {
 		switch (vertexAttribFormat) {
 			case VertexAttribFormat::FLOAT32:
 			case VertexAttribFormat::UINT32:
-			case VertexAttribFormat::INT32:
-				assert(sizeof(float) == sizeof(uint32_t) == sizeof(int32_t) == 4 && "Types' sizes don't match!");
-				return 4;
+			case VertexAttribFormat::INT32: {
+				uint32_t expectedSize{ 4 };
+				bool floatCheck = sizeof(float) == expectedSize;
+				bool uintCheck = sizeof(uint32_t) == expectedSize;
+				bool intCheck = sizeof(int32_t) == expectedSize;
+				assert(floatCheck && uintCheck && intCheck && "Types' sizes don't match!");
+				return expectedSize;
+			}
 			break;
 			case VertexAttribFormat::UINT16:
-			case VertexAttribFormat::INT16:
-				assert(sizeof(uint16_t) == sizeof(int16_t) == 2 && "Types' sizes don't match!");
-				return 2;
+			case VertexAttribFormat::INT16: {
+				uint32_t expectedSize{ 2 };
+				bool uintCheck = sizeof(uint16_t) == expectedSize;
+				bool intCheck = sizeof(int16_t) == expectedSize;
+				assert(uintCheck && intCheck && "Types' sizes don't match!");
+				return expectedSize;
+			}
 			break;
 			case VertexAttribFormat::UINT8:
-			case VertexAttribFormat::INT8:
-				assert(sizeof(uint8_t) == sizeof(int8_t) == 1 && "Types' sizes don't match!");
-				return 1;
+			case VertexAttribFormat::INT8: {
+				uint32_t expectedSize{ 1 };
+				bool uintCheck = sizeof(uint8_t) == expectedSize;
+				bool intCheck = sizeof(int8_t) == expectedSize;
+				assert(uintCheck && intCheck && "Types' sizes don't match!");
+				return expectedSize;
+			}
 			break;
-
 			default:
 				assert(true && "Unknown vertex attribute format provided!");
 				return 0;

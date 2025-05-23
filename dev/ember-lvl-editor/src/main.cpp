@@ -1,10 +1,14 @@
 #include "Core/CmdLineArgs.h"
 #include "EmberLvlEditorApp.h"
 
+#include <cstdlib>
+
 int main(int argc, char* argv[]) {
     ember::CmdLineArgs cmdLineArgs{ argc, argv };
     ember::EmberLvlEditorApp app{ cmdLineArgs };
-    app.Initialize();
+    if (!app.Initialize()) {
+        return EXIT_FAILURE;
+    }
     int exitCode = app.Run();
     app.Terminate();
     return exitCode;

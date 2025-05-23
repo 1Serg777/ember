@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Renderer/Vertex.h"
+#include "GpuApi/Vertex.h"
 
 #include <vulkan/vulkan.h>
 

@@ -13,7 +13,7 @@ namespace ember {
     public:
         EmberLvlEditorApp(const CmdLineArgs& cmdLineArgs);
 
-        void Initialize();
+        bool Initialize();
         void Terminate();
 
         int Run();

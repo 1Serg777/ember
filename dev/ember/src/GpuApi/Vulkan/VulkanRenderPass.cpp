@@ -1,24 +1,22 @@
 #include "GpuApi/Vulkan/VulkanRenderPass.h"
 
+#include <stdexcept>
+
 namespace ember {
-
-	VkSubpassDescription& VulkanSubpasses::GetSubpassDescription(uint32_t subpassId) {
-		return subpassDescs[subpassId];
-	}
-	VulkanSubpassAttachmentReferences& VulkanSubpasses::GetAttachmentReferences(uint32_t subpassId) {
-		return attachmentRefs[subpassId];
-	}
-
-	void VulkanSubpasses::Resize(uint32_t subpassCount) {
-		subpassDescs.resize(subpassCount);
-		attachmentRefs.resize(subpassCount);
-	}
 
 	void VulkanRenderPass::SetAttachmentCount(uint32_t attachmentCount) {
 		attachmentDescs.resize(attachmentCount);
 	}
 	void VulkanRenderPass::SetSubpassCount(uint32_t subpassCount) {
-		subpasses.Resize(subpassCount);
+		subpassDescs.resize(subpassCount);
+		attachmentRefs.resize(subpassCount);
+	}
+	void VulkanRenderPass::SetSubpassColorAttachmentCount(uint32_t subpass, uint32_t attachmentCount) {
+		std::vector<VkAttachmentReference>& colorAttachmentRefs = GetColorAttachmentReferences(subpass);
+		colorAttachmentRefs.resize(attachmentCount);
+		VkSubpassDescription& subpassDesc = GetSubpassDescription(subpass);
+		subpassDesc.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRefs.size());
+		subpassDesc.pColorAttachments = colorAttachmentRefs.data();
 	}
 	void VulkanRenderPass::SetSubpassDependencyCount(uint32_t subpassDependencyCount) {
 		subpassDeps.resize(subpassDependencyCount);
@@ -29,38 +27,30 @@ namespace ember {
 		attachmentDescs[attachmentIdx] = attachmentDescription;
 	}
 
-	void VulkanRenderPass::SetShaderReadOnlyColorAttachment(
-		VkFormat attachmentFormat, uint32_t attachmentIdx, VkSampleCountFlagBits samples) {
+	void VulkanRenderPass::SetRenderTargetColorAttachment(VkFormat attachmentFormat, uint32_t attachmentIdx) {
 		VkAttachmentDescription colorAttachmentDesc{};
 		colorAttachmentDesc.format = attachmentFormat;
-		colorAttachmentDesc.samples = samples;
-		colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		SetAttachment(colorAttachmentDesc, attachmentIdx);
-	}
-	void VulkanRenderPass::SetRenderTargetColorAttachment(
-		VkFormat attachmentFormat, VkSampleCountFlagBits samples,
-		bool presentationAttachment, uint32_t attachmentIdx) {
-		VkAttachmentDescription colorAttachmentDesc{};
-		colorAttachmentDesc.format = attachmentFormat;
-		colorAttachmentDesc.samples = samples;
+		colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
 		colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		// colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		if (presentationAttachment)
-			colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		else
-			colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		SetAttachment(colorAttachmentDesc, attachmentIdx);
 	}
-
+	void VulkanRenderPass::SetPresentRenderTargetColorAttachment(VkFormat attachmentFormat, uint32_t attachmentIdx) {
+		VkAttachmentDescription colorAttachmentDesc{};
+		colorAttachmentDesc.format = attachmentFormat;
+		colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		SetAttachment(colorAttachmentDesc, attachmentIdx);
+	}
 	void VulkanRenderPass::SetDepthAttachment(uint32_t attachmentIdx, bool storeDepth) {
 		VkAttachmentDescription depthAttachment{};
 		depthAttachment.format = VK_FORMAT_D32_SFLOAT;
@@ -84,21 +74,71 @@ namespace ember {
 		depthStencilAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	}
 
-	void VulkanRenderPass::SetSubpassColorAttachmentReferences(const std::vector<uint32_t>& refs, uint32_t subpassIdx) {
-		VulkanSubpassAttachmentReferences& attachmentRefs = subpasses.GetAttachmentReferences(subpassIdx);
-		std::vector<VkAttachmentReference>& colorAttachmentRefs = attachmentRefs.colorAttachments;
-		colorAttachmentRefs.resize(refs.size());
-
-		for (uint32_t i = 0; i < refs.size(); i++) {
-			VkAttachmentReference attachmentRef{};
-			attachmentRef.attachment = refs[i];
-			attachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			colorAttachmentRefs[i] = attachmentRef;
+	void VulkanRenderPass::SetSubpassColorAttachmentReference(uint32_t attachmentId, uint32_t refId, uint32_t subpass) {
+		SetSubpassColorAttachmentReference(attachmentId, refId, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subpass);
+	}
+	void VulkanRenderPass::SetSubpassColorAttachmentReference(
+		uint32_t attachmentId, uint32_t refId, VkImageLayout layout, uint32_t subpass) {
+		// This 'refId' is important as it corresponds to the layout location attribute
+		// of the corresponding variable declaration in the shader.
+		std::vector<VkAttachmentReference>& colorAttachmentRefs = GetColorAttachmentReferences(subpass);
+		VkAttachmentReference attachmentRef{};
+		attachmentRef.attachment = attachmentId;
+		attachmentRef.layout = layout;
+		colorAttachmentRefs[refId] = attachmentRef;
+	}
+	void VulkanRenderPass::SetSubpassColorAttachmentReferences(
+		const std::vector<uint32_t>& attachments, uint32_t subpass) {
+		SetSubpassColorAttachmentReferences(attachments, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subpass);
+	}
+	void VulkanRenderPass::SetSubpassColorAttachmentReferences(
+		const std::vector<uint32_t>& attachments, VkImageLayout layout, uint32_t subpass) {
+		SetSubpassColorAttachmentCount(subpass, static_cast<uint32_t>(attachments.size()));
+		for (uint32_t refId = 0; refId < attachments.size(); refId++) {
+			SetSubpassColorAttachmentReference(attachments[refId], refId, layout, subpass);
 		}
+	}
 
-		VkSubpassDescription& subpassDesc = subpasses.GetSubpassDescription(subpassIdx);
-		subpassDesc.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentRefs.size());
-		subpassDesc.pColorAttachments = colorAttachmentRefs.data();
+	void VulkanRenderPass::CreateRenderPass(VkDevice device) {
+		VkRenderPassCreateInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescs.size());
+		renderPassInfo.pAttachments = attachmentDescs.data();
+		renderPassInfo.subpassCount = static_cast<uint32_t>(subpassDescs.size());
+		renderPassInfo.pSubpasses = subpassDescs.data();
+
+		/*
+		VkSubpassDependency subpassDependency{};
+		subpassDependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		subpassDependency.dstSubpass = 0;
+		subpassDependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		subpassDependency.srcAccessMask = 0;
+		subpassDependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		subpassDependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		*/
+
+		// renderPassInfo.dependencyCount = 1;
+		// renderPassInfo.pDependencies = &subpassDependency;
+
+		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+			throw std::runtime_error{ "Failed to create a Render Pass!" };
+		}
+	}
+	void VulkanRenderPass::DestroyRenderPass(VkDevice device) {
+		vkDestroyRenderPass(device, renderPass, nullptr);
+	}
+	VkRenderPass VulkanRenderPass::GetRenderPass() const {
+		return renderPass;
+	}
+
+	VkSubpassDescription& VulkanRenderPass::GetSubpassDescription(uint32_t subpass) {
+		return subpassDescs[subpass];
+	}
+	VulkanAttachmentReferences& VulkanRenderPass::GetAttachmentReferences(uint32_t subpass) {
+		return attachmentRefs[subpass];
+	}
+	std::vector<VkAttachmentReference>& VulkanRenderPass::GetColorAttachmentReferences(uint32_t subpass) {
+		return GetAttachmentReferences(subpass).colorAttachments;
 	}
 
 }

@@ -17,10 +17,16 @@ namespace ember {
 	EmberLvlEditorApp::EmberLvlEditorApp(const CmdLineArgs& cmdLineArgs) {
 	}
 
-	void EmberLvlEditorApp::Initialize() {
-		InitializeLibraries();
-		InitializeSystems();
-		RegisterApplicationCallbacks();
+	bool EmberLvlEditorApp::Initialize() {
+		try {
+			InitializeLibraries();
+			InitializeSystems();
+			RegisterApplicationCallbacks();
+			return true;
+		} catch (const std::runtime_error& re) {
+			std::cerr << "[Runtime error]: " << re.what() << std::endl;
+			return false;
+		}
 	}
 	void EmberLvlEditorApp::Terminate() {
 		TerminateSystems();
