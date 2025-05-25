@@ -13,15 +13,23 @@ project ( "ember-lvl-editor" )
         "%{include_dirs.ember}",
         "%{include_dirs.ember_lvl_editor}",
     }
-    libdirs {
+    libdirs{
         build_path .. "/bin/" .. target_dir
     }
    
     links {
-        "ember",
-        "glfw", -- On Windows it's enough
-        "glad", -- to only link to 'ember'
+        "ember", -- Putting ember to the bottom causes linking errors!
+        "glad", -- On Windows it's enough
+        "glfw", -- to only link to 'ember'
+        "imgui",
     }
+
+    filter{"system:windows"}
+        includedirs{"%{include_dirs.vulkan_win32}"}
+        libdirs    {"%{lib_dirs.vulkan_win32}"}
+        links      {"vulkan-1"}
+    filter{"system:linux"}
+        links      {"vulkan"}
 
     files {
         "%{include_dirs.ember_lvl_editor}/**.h",

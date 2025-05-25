@@ -1,11 +1,15 @@
 #include "GpuApi/GpuApiCtxVk.h"
 
+#ifdef EMBER_PLATFORM_WIN32
 #include <Windows.h>
 #undef CreateWindow
 #undef min
 #undef max
+#endif
 #include "Window/WindowGlfw.h"
+#ifdef EMBER_PLATFORM_WIN32
 #include <vulkan/vulkan_win32.h>
+#endif
 
 #include <algorithm>
 #include <iostream>
@@ -296,12 +300,10 @@ namespace ember {
 			requestedExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 		}
 #elif EMBER_PLATFORM_LINUX
-		else if (windowApiType == WindowApiType::WAYLAND) {
+		else if (windowApiType == WindowApiType::EM_WAYLAND) {
 			assert(false && "[Vulkan (Wayland)] Wayland Window API is not supported yet!");
-			return nullptr;
-		} else if (windowApiType == WindowApiType::X11) {
+		} else if (windowApiType == WindowApiType::EM_X11) {
 			assert(false && "[Vulkan (X11)] X11 Window API is not supported yet!");
-			return nullptr;
 		}
 #endif
 		else {
@@ -539,10 +541,10 @@ namespace ember {
 			CreateVulkanWindowWin32Surface();
 		}
 #elif EMBER_PLATFORM_LINUX
-		else if (windowApiType == WindowApiType::WAYLAND) {
+		else if (window->GetWindowType() == WindowApiType::EM_WAYLAND) {
 			CreateVulkanWaylandSurface();
 		}
-		else if (windowApiType == WindowApiType::X11) {
+		else if (window->GetWindowType() == WindowApiType::EM_X11) {
 			CreateVulkanX11Surface();
 		}
 #endif
@@ -1046,7 +1048,8 @@ namespace ember {
 		graphicsPipeline->SetAttachmentCount(1);
 
 		VulkanShaderModule vertexShaderModule{};
-		vertexShaderModule.shaderPath = std::filesystem::path{ "shaders/vshader.spv" };
+		std::filesystem::path vshaderRelPath = std::filesystem::path{ "resource/shaders/spirv/vshader.spv" };
+		vertexShaderModule.shaderPath = std::filesystem::current_path() / vshaderRelPath;
 		vertexShaderModule.entryPoint = std::string{ "main" };
 		vertexShaderModule.shaderType = SHADER_TYPE::VERTEX_SHADER;
 		VulkanShaderFactory::CreateShaderModule(
@@ -1054,7 +1057,8 @@ namespace ember {
 		graphicsPipeline->SetVertexShaderModule(vertexShaderModule);
 
 		VulkanShaderModule fragmentShaderModule;
-		fragmentShaderModule.shaderPath = std::filesystem::path{ "shaders/fshader.spv" };
+		std::filesystem::path fshaderRelPath = std::filesystem::path{ "resource/shaders/spirv/fshader.spv" };
+		fragmentShaderModule.shaderPath = std::filesystem::current_path() / fshaderRelPath;
 		fragmentShaderModule.entryPoint = std::string{ "main" };
 		fragmentShaderModule.shaderType = SHADER_TYPE::FRAGMENT_SHADER;
 		VulkanShaderFactory::CreateShaderModule(

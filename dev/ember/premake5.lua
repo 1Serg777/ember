@@ -6,32 +6,33 @@ project("ember")
     targetdir (build_path .. "/bin/" .. target_dir)
     objdir    (build_path .. "/bin-int/" .. obj_dir)
 
-    includedirs({
+    includedirs {
         "%{include_dirs.glad}",
         "%{include_dirs.glfw}",
         "%{include_dirs.glm}",
         "%{include_dirs.imgui}",
         "%{include_dirs.ember}",
-    })
-    libdirs({
+    }
+    libdirs {
         build_path .. "/bin/" .. target_dir
-    })
-
-    filter { "system:windows" }
-        includedirs({"%{include_dirs.vulkan_win32}"})
-        libdirs({"%{lib_dirs.vulkan_win32}"})
-
-    links({
+    }
+    links {
         "glad",
         "glfw",
         "imgui",
-        "vulkan-1"
-    })
+    }
 
-    files({
+    filter{"system:windows"}
+        includedirs{"%{include_dirs.vulkan_win32}"}
+        libdirs    {"%{lib_dirs.vulkan_win32}"}
+        links      {"vulkan-1"}
+    filter{"system:linux"}
+        links      {"vulkan"}
+
+    files {
         "%{include_dirs.ember}/**.h",
         "%{src_dirs.ember}/**.cpp",
-    })
+    }
 
     filter ( "configurations:Debug" )
         defines ( { "DEBUG", "_DEBUG" } )

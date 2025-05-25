@@ -20,8 +20,8 @@ include_dirs["glad"]  = external_dependencies_path .. "/glad/include"
 include_dirs["glfw"]  = external_dependencies_path .. "/glfw/include"
 include_dirs["glm"]   = external_dependencies_path .. "/glm/glm"
 include_dirs["imgui"] = external_dependencies_path .. "/imgui"
-include_dirs["vulkan_win32"] = "C:\\VulkanSDK\\1.4.313.0\\Include"
-
+-- include_dirs["vulkan_win32"] = "C:\\VulkanSDK\\1.4.313.0\\Include"
+include_dirs["vulkan_win32"] = _OPTIONS["vulkan_sdk_path"] .. "\\Include"
 -- internal dependencies include directories
 -- TODO
 
@@ -51,4 +51,5 @@ src_dirs["ember_lvl_editor"] = dev_path .. "/ember-lvl-editor/src"
 -------------------------
 lib_dirs = {}
 
-lib_dirs["vulkan_win32"] = "C:\\VulkanSDK\\1.4.313.0\\Lib"
+-- lib_dirs["vulkan_win32"] = "C:\\VulkanSDK\\1.4.313.0\\Lib"
+lib_dirs["vulkan_win32"] = _OPTIONS["vulkan_sdk_path"] .. "\\Lib"

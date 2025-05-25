@@ -2,11 +2,13 @@
 
 #include <cstdint>
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 
 namespace ember {
 
     void VulkanShaderFactory::CreateShaderModule(VulkanShaderModule& shader, VkDevice device) {
+        std::cout << "Loading shader from: " << shader.shaderPath.c_str() << std::endl;
         std::vector<char> shaderBuf = ReadShaderFile(shader.shaderPath);
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

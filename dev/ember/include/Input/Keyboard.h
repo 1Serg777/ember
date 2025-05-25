@@ -3,6 +3,7 @@
 #include "Input/Input.h"
 
 #include <bitset>
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 

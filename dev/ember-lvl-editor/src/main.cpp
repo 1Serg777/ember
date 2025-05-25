@@ -2,6 +2,8 @@
 #include "EmberLvlEditorApp.h"
 
 #include <cstdlib>
+#include <iostream>
+#include <filesystem>
 
 int main(int argc, char* argv[]) {
     ember::CmdLineArgs cmdLineArgs{ argc, argv };
