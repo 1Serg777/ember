@@ -1,28 +1,43 @@
 @echo off
+setlocal enabledelayedexpansion
 
-set batch_script_path=%~dp0
-set premake_exe_path=%batch_script_path%tools\windows\premake
-REM set dev_path=%batch_script_path%dev
-
-REM set premake_script_path=%dev_path%
-REM set premake5_file_path=%dev_path%\premake5.lua
+:: set batch_script_path=%~dp0
+:: set premake_exe_path=%batch_script_path%tools\windows\premake
+set premake_exe_path=tools\windows\premake
 
 set os_premake_flag=--os=windows
-
-REM set scripts_premake_flag=--scripts=%premake_script_path%
-REM set premake5_file_flag=--file=%premake5_file_path%
-
 set ide_action=vs2022
 
-REM echo %batch_script_path%
-REM echo %premake_exe_path%
-REM echo %premake_script_path%
+if not defined VULKAN_SDK (
+    set vulkan_sdk_path="C:\Vulkan\SDK"
+    echo VULKAN_SDK environment variable doesn't exist. Using the default "C:\Vulkan\SDK" path.
+) else (
+    set vulkan_sdk_path=%VULKAN_SDK%
+    echo Using "%VULKAN_SDK%" path to locate the Vulkan SDK.
+)
+set vulkan_sdk_option=--vulkan_sdk_path="%vulkan_sdk_path%"
 
-REM echo %scripts_premake_flag%
+set premake_options=%os_premake_flag% %vulkan_sdk_option%
+set premake_action=%ide_action%
+set premake_call=%premake_exe_path%\premake5.exe %premake_options% %premake_action%
+echo Calling: %premake_call%
+call %premake_call%
 
-REM echo %premake_exe_path%\premake5.exe %scripts_premake_flag% %os_premake_flag% %ide_action%
-REM call %premake_exe_path%\premake5.exe %scripts_premake_flag% %os_premake_flag% %ide_action%
-
-REM call %premake_exe_path%\premake5.exe %premake5_file_flag% %os_premake_flag% %ide_action%
-
-call %premake_exe_path%\premake5.exe %os_premake_flag% %ide_action%
+:: echo Copying "resource" folder...
+:: echo D | xcopy /E /Y "resource" "build\ember-lvl-editor\resource"
+:: xcopy /I /E "resource" "build\ember-lvl-editor\resource"
+if not exist "build\ember-lvl-editor\resource" (
+    echo Copying the "resource" folder...
+    :: echo D | xcopy /E "resource" "build\ember-lvl-editor\resource"
+    xcopy /I /E "resource" "build\ember-lvl-editor\resource"
+) else (
+    set /p response="The 'resource' folder already exists, do you want to overwrite its contents? [Y-Yes, N-No] "
+    :: echo "!response!"
+    if /I "!response!"=="Y" (
+        echo Overwriting the "resource" folder in "build\ember-lvl-editor\resource"...
+        :: xcopy /E /Y "resource" "build\ember-lvl-editor\resource"
+        xcopy /E /Y "resource" "build\ember-lvl-editor\resource"
+    ) else (
+        echo Leaving the "resource" folder in "build\ember-lvl-editor\resource" as is.
+    )
+)

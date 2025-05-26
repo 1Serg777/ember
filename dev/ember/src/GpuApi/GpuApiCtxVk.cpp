@@ -1048,7 +1048,7 @@ namespace ember {
 		graphicsPipeline->SetAttachmentCount(1);
 
 		VulkanShaderModule vertexShaderModule{};
-		std::filesystem::path vshaderRelPath = std::filesystem::path{ "resource/shaders/spirv/vshader.spv" };
+		std::filesystem::path vshaderRelPath = std::filesystem::path{ "resource/shaders/spirv/vshader.spv" }.make_preferred();
 		vertexShaderModule.shaderPath = std::filesystem::current_path() / vshaderRelPath;
 		vertexShaderModule.entryPoint = std::string{ "main" };
 		vertexShaderModule.shaderType = SHADER_TYPE::VERTEX_SHADER;
@@ -1057,7 +1057,7 @@ namespace ember {
 		graphicsPipeline->SetVertexShaderModule(vertexShaderModule);
 
 		VulkanShaderModule fragmentShaderModule;
-		std::filesystem::path fshaderRelPath = std::filesystem::path{ "resource/shaders/spirv/fshader.spv" };
+		std::filesystem::path fshaderRelPath = std::filesystem::path{ "resource/shaders/spirv/fshader.spv" }.make_preferred();
 		fragmentShaderModule.shaderPath = std::filesystem::current_path() / fshaderRelPath;
 		fragmentShaderModule.entryPoint = std::string{ "main" };
 		fragmentShaderModule.shaderType = SHADER_TYPE::FRAGMENT_SHADER;

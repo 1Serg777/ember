@@ -1,10 +1,10 @@
-project ( "ember-lvl-editor" )
-    kind       ( "ConsoleApp" )
-    language   ( "C++" )
-    cppdialect ( "C++17" )
-    location   ( build_path .. "/ember-lvl-editor" )
-    targetdir  ( build_path .. "/bin/" .. target_dir )
-    objdir     ( build_path .. "/bin-int/" .. obj_dir )
+project("ember-lvl-editor")
+    kind      ("ConsoleApp")
+    language  ("C++")
+    cppdialect("C++17")
+    location  (build_path .. "/ember-lvl-editor")
+    targetdir (build_path .. "/bin/" .. target_dir)
+    objdir    (build_path .. "/bin-int/" .. obj_dir)
 
     includedirs {
         -- "%{include_dirs.glad}", -- Uncomment if you ever need to work with
@@ -13,7 +13,7 @@ project ( "ember-lvl-editor" )
         "%{include_dirs.ember}",
         "%{include_dirs.ember_lvl_editor}",
     }
-    libdirs{
+    libdirs {
         build_path .. "/bin/" .. target_dir
     }
    
@@ -24,6 +24,11 @@ project ( "ember-lvl-editor" )
         "imgui",
     }
 
+    files {
+        "%{include_dirs.ember_lvl_editor}/**.h",
+        "%{src_dirs.ember_lvl_editor}/**.cpp",
+    }
+
     filter{"system:windows"}
         includedirs{"%{include_dirs.vulkan_win32}"}
         libdirs    {"%{lib_dirs.vulkan_win32}"}
@@ -31,38 +36,33 @@ project ( "ember-lvl-editor" )
     filter{"system:linux"}
         links      {"vulkan"}
 
-    files {
-        "%{include_dirs.ember_lvl_editor}/**.h",
-        "%{src_dirs.ember_lvl_editor}/**.cpp",
-    }
+    filter("configurations:Debug")
+        defines({"DEBUG", "_DEBUG" })
+        runtime("Debug")
+        symbols("On")
 
-    filter ( "configurations:Debug" )
-        defines ( { "DEBUG", "_DEBUG" } )
-        runtime ( "Debug" )
-        symbols ( "On" )
-
-    filter ( "configurations:Release" )
-        defines  ( { "NDEBUG", "_NDEBUG" } )
-        runtime  ( "Release" )
-        optimize ( "On" )
+    filter("configurations:Release")
+        defines ({"NDEBUG", "_NDEBUG"})
+        runtime ("Release")
+        optimize("On")
 
    
-    filter ( "system:windows" )
-        defines( { "EMBER_PLATFORM_WIN32" } )
+    filter("system:windows")
+        defines({"EMBER_PLATFORM_WIN32"})
 
-    filter ( { "system:windows", "action:vs*" } )
+    filter({"system:windows", "action:vs*"})
         -- buildoptions ( { "/utf-8" } ) --spdlog requirement
         vpaths {
-            ["Include/*"] = { "%{include_dirs.ember_lvl_editor}/**.h", },
-            ["Sources/*"] = { "%{src_dirs.ember_lvl_editor}/**.cpp" },
+            ["Include/*"] = {"%{include_dirs.ember_lvl_editor}/**.h"},
+            ["Sources/*"] = {"%{src_dirs.ember_lvl_editor}/**.cpp"},
         }
       
         -- postbuildcommands {
             -- os.execute("copy-shaders.bat")
         -- }
 
-    filter ( "system:linux" )
-        defines( { "EMBER_PLATFORM_LINUX" } )
+    filter("system:linux")
+        defines({"EMBER_PLATFORM_LINUX"})
 
         -- postbuildcommands {
             -- os.execute("copy-shaders.sh")
