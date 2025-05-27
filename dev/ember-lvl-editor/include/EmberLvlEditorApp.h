@@ -30,6 +30,7 @@ namespace ember {
         void RegisterApplicationCallbacks();
         void OnKeyboardKeyEvent(const KeyboardKeyEventData& keyboardKeyEventData);
         void OnWindowClose(const WindowCloseEventData& windowCloseEventData);
+        void OnFramebufferResizeEvent(const FramebufferResizeEventData& framebufferResizeEventData);
 
         std::unique_ptr<EventRegistry> eventRegistry;
         std::unique_ptr<GpuApiCtx> gpuApiCtx;

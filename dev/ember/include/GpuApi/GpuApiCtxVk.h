@@ -24,11 +24,6 @@ namespace ember {
 		// TODO
 	};
 
-	struct VulkanImage {
-		VkImage image{VK_NULL_HANDLE};
-		VkImageView imageView{VK_NULL_HANDLE};
-	};
-
 	struct VulkanQueueFamilyIndices {
 		bool HasGraphicsQueueFamily() const;
 		bool HasPresentQueueFamily() const;
@@ -41,7 +36,6 @@ namespace ember {
 	struct VulkanQueueFamily {
 		VkQueue queueHandle{VK_NULL_HANDLE};
 		VkCommandPool commandPool{VK_NULL_HANDLE};
-		std::vector<VkCommandBuffer> commandBuffers;
 		uint32_t queueFamilyId{0};
 	};
 
@@ -70,8 +64,6 @@ namespace ember {
 	};
 
 	struct VulkanSwapchainData {
-		std::vector<VulkanImage> swapchainImages;
-
 		VkSwapchainKHR swapchain{VK_NULL_HANDLE};
 
 		VkExtent2D swapchainExtent{};
@@ -97,10 +89,16 @@ namespace ember {
 		VkDevice logicalDevice{VK_NULL_HANDLE};
 	};
 
-	struct VulkanSynchronizationObjects {
-		VkSemaphore imageAvailableSemaphore{VK_NULL_HANDLE};
-		VkSemaphore renderingFinishedSemaphore{VK_NULL_HANDLE};
+	struct VulkanFrameResources {
 		VkFence frameFinishedFence{VK_NULL_HANDLE};
+		VkSemaphore imageAvailableSemaphore{VK_NULL_HANDLE};
+		VkCommandBuffer commandBuffer{VK_NULL_HANDLE};
+	};
+	struct VulkanSwapchainImageResources {
+		VulkanFramebuffer framebuffer;
+		VkImage image{VK_NULL_HANDLE};
+		VkImageView imageView{VK_NULL_HANDLE};
+		VkSemaphore renderingFinishedSemaphore{VK_NULL_HANDLE};
 	};
 
 	struct VulkanData {
@@ -124,12 +122,8 @@ namespace ember {
 		VulkanQueueFamily& GetPresentationQueueFamily();
 		const VulkanQueueFamily& GetPresentationQueueFamily() const;
 
-		VulkanSynchronizationObjects& GetSynchronizationObjects(uint32_t idx);
-		const VulkanSynchronizationObjects& GetSynchronizationObjects(uint32_t idx) const;
-
 		VulkanDeviceData deviceData{};
 		VulkanInstanceData instanceData{};
-		std::vector<VulkanSynchronizationObjects> syncObjects;
 		VkSurfaceKHR surface{VK_NULL_HANDLE};
 	};
 
@@ -155,6 +149,8 @@ namespace ember {
 		void OnFrameEnd() override;
 		void DrawFrame() override;
 		void Present() override;
+
+		void OnFramebufferResize() override;
 
 		const SettingsVk& GetSettingsVk() const;
 
@@ -245,9 +241,12 @@ namespace ember {
 		VkExtent2D PickSwapchainExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 		void CreateSwapchain();
+		void DestroySwapchain();
 		void AcquireSwapchainImages();
 		void CreateSwapchainImageViews();
 		void DestroySwapchainImageViews();
+		void ResizeSwapchain();
+		bool TryHandlePossibleSwapchainError(VkResult result);
 
 		void CreateGraphicsPipeline();
 		void CreateRenderPass();
@@ -262,13 +261,17 @@ namespace ember {
 		void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t swapchainImageIdx);
 
 		void CreateSynchronizationObjects();
+		void CreateFrameResourceSynchronizationObjects();
+		void CreateSwapchainImageResourceSynchronizationObjects();
 		void DestroySynchronizationObjects();
+		void DestroyFrameResourceSynchronizationObjects();
+		void DestroySwapchainImageResourceSynchronizationObjects();
 		void Synchronize();
 
 		VulkanData vulkanData;
-		Window* window{nullptr};
 
-		std::vector<VulkanFramebuffer> framebuffers;
+		std::vector<VulkanFrameResources> frameRes;
+		std::vector<VulkanSwapchainImageResources> swapchainImageRes;
 
 		std::shared_ptr<VulkanGraphicsPipeline> graphicsPipeline;
 		std::shared_ptr<VulkanRenderPass> renderPass;
@@ -276,8 +279,11 @@ namespace ember {
 
 		VkClearColorValue clearColor{0.0f, 0.0f, 0.0f, 1.0f};
 
+		Window* window{ nullptr };
+
 		uint32_t framesInFlight{1};
 		uint32_t frame{0};
+		uint32_t imageIdx{0};
 
 		SettingsVk settings;
 	};

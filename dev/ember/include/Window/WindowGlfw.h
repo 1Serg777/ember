@@ -66,6 +66,7 @@ namespace ember {
 
 		static void KeyboardKeyEventCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 		static void WindowCloseEventCallback(GLFWwindow* window);
+		static void FramebufferResizeEventCallback(GLFWwindow* window, int width, int height);
 		static void GlfwErrorCallback(int errorCode, const char* description);
 
 		GLFWwindow* windowHandle{ nullptr };

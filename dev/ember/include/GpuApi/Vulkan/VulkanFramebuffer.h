@@ -23,13 +23,14 @@ namespace ember {
 		void ClearAttachments();
 
 		void SetRenderPass(std::shared_ptr<VulkanRenderPass> vulkanRenderPass);
+		void ResetRenderPass();
 
 		VkFramebuffer GetFramebuffer() const;
 
 	private:
 		std::vector<VkImageView> attachments;
 		std::shared_ptr<VulkanRenderPass> renderPass;
-		VkFramebuffer framebuffer{ VK_NULL_HANDLE };
+		VkFramebuffer framebuffer{VK_NULL_HANDLE};
 		uint32_t width{};
 		uint32_t height{};
 	};

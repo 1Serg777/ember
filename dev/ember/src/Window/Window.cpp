@@ -93,6 +93,9 @@ namespace ember {
 	bool Window::IsVisible() const {
 		return windowSettings.isVisible;
 	}
+	bool Window::IsMinimized() const {
+		return isMinimized;
+	}
 
 	Window* CreateWindow(const WindowSettings& windowSettings) {
 #ifdef EMBER_PLATFORM_WIN32

@@ -15,9 +15,9 @@ namespace ember {
 	class OglGlfwImGuiCtx;
 
 	struct SettingsOgl {
-		int openglVersionMajor{ 4 };
-		int openglVersionMinor{ 6 };
-		std::string_view glslVersion{ "#version 460" };
+		int openglVersionMajor{4};
+		int openglVersionMinor{6};
+		std::string_view glslVersion{"#version 460"};
 	};
 
 	class GpuApiCtxOgl : public GpuApiCtx {
@@ -55,6 +55,8 @@ namespace ember {
 		void OnFrameEnd() override;
 		void DrawFrame() override;
 		void Present() override;
+
+		void OnFramebufferResize() override;
 
 	private:
 		WindowGlfw* window{nullptr};

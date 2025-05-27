@@ -2,6 +2,8 @@
 
 #include "Window/Window.h"
 
+#include <cstdint>
+
 namespace ember {
 
 	enum class GpuApiType {
@@ -26,6 +28,8 @@ namespace ember {
 		virtual void OnFrameEnd() = 0;
 		virtual void DrawFrame() = 0;
 		virtual void Present() = 0;
+
+		virtual void OnFramebufferResize() = 0;
 
 		virtual GpuApiType GetGpuApiType() const = 0;
 	};

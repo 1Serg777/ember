@@ -41,6 +41,9 @@ namespace ember {
 	void VulkanFramebuffer::SetRenderPass(std::shared_ptr<VulkanRenderPass> vulkanRenderPass) {
 		this->renderPass = vulkanRenderPass;
 	}
+	void VulkanFramebuffer::ResetRenderPass() {
+		this->renderPass.reset();
+	}
 
 	VkFramebuffer VulkanFramebuffer::GetFramebuffer() const {
 		return this->framebuffer;

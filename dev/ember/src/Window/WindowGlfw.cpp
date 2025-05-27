@@ -126,6 +126,7 @@ namespace ember {
             return;
         glfwSetKeyCallback(windowHandle, KeyboardKeyEventCallback);
         glfwSetWindowCloseCallback(windowHandle, WindowCloseEventCallback);
+        glfwSetFramebufferSizeCallback(windowHandle, FramebufferResizeEventCallback);
         glfwSetWindowUserPointer(windowHandle, this);
     }
 
@@ -231,6 +232,23 @@ namespace ember {
         WindowGlfw* windowGlfw = static_cast<WindowGlfw*>(glfwGetWindowUserPointer(window));
         assert(windowGlfw && "WindowGlfw* cannot be 'nullptr'. Forgot to set it through 'glfwSetWindowUserPointer'?");
         windowGlfw->eventRegistry->NotifyEventCallbackDelayed(windowCloseEventData);
+    }
+    void WindowGlfw::FramebufferResizeEventCallback(GLFWwindow* window, int width, int height) {
+        FramebufferResizeEventData framebufferResizeEventData{};
+        framebufferResizeEventData.width = width;
+        framebufferResizeEventData.height = height;
+
+        WindowGlfw* windowGlfw = static_cast<WindowGlfw*>(glfwGetWindowUserPointer(window));
+        assert(windowGlfw && "WindowGlfw* cannot be 'nullptr'. Forgot to set it through 'glfwSetWindowUserPointer'?");
+
+        windowGlfw->windowSettings.framebufferDimensions = Dimensions2D{
+            static_cast<uint32_t>(width), static_cast<uint32_t>(height)
+        };
+        if (width == 0 && height == 0) {
+            windowGlfw->isMinimized = true;
+        }
+        windowGlfw->eventRegistry->NotifyEventCallbackImmediate(framebufferResizeEventData);
+        // windowGlfw->eventRegistry->NotifyEventCallbackDelayed(framebufferResizeEventData);
     }
     void WindowGlfw::GlfwErrorCallback(int errorCode, const char* description) {
         std::stringstream errorStream;

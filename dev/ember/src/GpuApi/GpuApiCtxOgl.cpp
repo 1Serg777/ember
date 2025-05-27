@@ -105,6 +105,10 @@ namespace ember {
 		window->PresentFrame();
 	}
 
+	void GlfwOglCtx::OnFramebufferResize() {
+		// TODO
+	}
+
 	void GlfwOglCtx::OnMakeCurrent() {
 		window->MakeContextCurrent();
 		if (!openglFunctionsLoaded) {

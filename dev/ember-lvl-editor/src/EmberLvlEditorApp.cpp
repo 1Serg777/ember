@@ -40,11 +40,12 @@ namespace ember {
 				window->Update();
 				eventRegistry->Update();
 
-				gpuApiCtx->OnFrameBegin();
-				gpuApiCtx->DrawFrame();
-				gpuApiCtx->OnFrameEnd();
-
-				gpuApiCtx->Present();
+				if (!window->IsMinimized()) {
+					gpuApiCtx->OnFrameBegin();
+					gpuApiCtx->DrawFrame();
+					gpuApiCtx->OnFrameEnd();
+					gpuApiCtx->Present();
+				}
 			}
 		} catch (const GLFWError& glfwError) {
 			std::cerr << "[GLFW Error]: " << glfwError.what() << std::endl;
@@ -63,11 +64,10 @@ namespace ember {
 		eventRegistry = std::make_unique<EventRegistry>();
 
 		// Later, these settings will probably be retrieved from some configuration file.
-		// GpuApiType gpuApiType = GpuApiType::OPENGL;
 		GpuApiType gpuApiType = GpuApiType::VULKAN;
 		WindowSettings windowSettings{};
 		windowSettings.type = WindowApiType::EM_GLFW;
-		windowSettings.isResizable = false;
+		windowSettings.isResizable = true;
 
 		// Here the objects (of the apporpriate classes according to the settings)
 		// are created and their settings are set up.
@@ -118,6 +118,8 @@ namespace ember {
 			std::bind(&EmberLvlEditorApp::OnKeyboardKeyEvent, this, _1));
 		eventRegistry->RegisterEventCallback<WindowCloseEventData>(
 			std::bind(&EmberLvlEditorApp::OnWindowClose, this, _1));
+		eventRegistry->RegisterEventCallback<FramebufferResizeEventData>(
+			std::bind(&EmberLvlEditorApp::OnFramebufferResizeEvent, this, _1));
 	}
 	void EmberLvlEditorApp::OnKeyboardKeyEvent(const KeyboardKeyEventData& keyboardKeyEventData) {
 		switch (keyboardKeyEventData.key) {
@@ -130,5 +132,8 @@ namespace ember {
 		if (windowCloseEventData.close) {
 			this->appIsRunning = false;
 		}
+	}
+	void EmberLvlEditorApp::OnFramebufferResizeEvent(const FramebufferResizeEventData& framebufferResizeEventData) {
+		this->gpuApiCtx->OnFramebufferResize();
 	}
 }

@@ -110,13 +110,6 @@ namespace ember {
 		return deviceData.presentationQueueFamily;
 	}
 
-	VulkanSynchronizationObjects& VulkanData::GetSynchronizationObjects(uint32_t idx) {
-		return syncObjects[idx];
-	}
-	const VulkanSynchronizationObjects& VulkanData::GetSynchronizationObjects(uint32_t idx) const {
-		return syncObjects[idx];
-	}
-
 	GpuApiCtxVk::GpuApiCtxVk(const SettingsVk& settings, Window* window)
 		: settings(settings), window(window) {
 	}
@@ -146,12 +139,14 @@ namespace ember {
 
 		PickSwapchainProperties();
 		CreateSwapchain();
+		swapchainImageRes.resize(vulkanData.GetSwapchainData().swapchainImageCount);
 		AcquireSwapchainImages();
 		CreateSwapchainImageViews();
 
 		CreateGraphicsPipeline();
 		CreateFramebuffers();
 
+		frameRes.resize(framesInFlight);
 		CreateCommandPools();
 		CreateCommandBuffers();
 
@@ -170,7 +165,7 @@ namespace ember {
 		renderPass->DestroyRenderPass(vulkanData.GetLogicalDevice());
 		pipelineLayout->DestroyPipelineLayout(vulkanData.GetLogicalDevice());
 		DestroySwapchainImageViews();
-		vkDestroySwapchainKHR(vulkanData.GetLogicalDevice(), vulkanData.GetSwapchain(), nullptr);
+		DestroySwapchain();
 		vkDestroyDevice(vulkanData.GetLogicalDevice(), nullptr);
 		vkDestroySurfaceKHR(vulkanData.GetInstance(), vulkanData.surface, nullptr);
 		DestroyVulkanDebugMessenger();
@@ -194,61 +189,74 @@ namespace ember {
 		// TODO
 	}
 	void GpuApiCtxVk::DrawFrame() {
-		vkWaitForFences(
-			vulkanData.GetLogicalDevice(),
-			1, &vulkanData.GetSynchronizationObjects(frame).frameFinishedFence,
-			VK_TRUE, UINT64_MAX);
-		vkResetFences(
-			vulkanData.GetLogicalDevice(),
-			1, &vulkanData.GetSynchronizationObjects(frame).frameFinishedFence);
+		vkWaitForFences(vulkanData.GetLogicalDevice(), 1, &frameRes[frame].frameFinishedFence, VK_TRUE, UINT64_MAX);
+		VkResult acquireImageResult{};
+		do {
+			acquireImageResult = vkAcquireNextImageKHR(vulkanData.GetLogicalDevice(),
+													   vulkanData.GetSwapchain(),
+													   UINT64_MAX, 
+													   frameRes[frame].imageAvailableSemaphore,
+													   VK_NULL_HANDLE, &imageIdx);
+			if (!TryHandlePossibleSwapchainError(acquireImageResult)) {
+				throw std::runtime_error{"Failed to acquire the next swapchain image!"};
+			}
+			if (acquireImageResult == VK_SUBOPTIMAL_KHR)
+				break; // VK_SUBOPTIMAL_KHR is handled here because we're in a loop.
+					   // In case the swapchain is indeed suboptimal, we simply "break".
+		} while (acquireImageResult != VK_SUCCESS);
 
-		uint32_t imageIdx{0};
-		VkResult acquireImageResult = vkAcquireNextImageKHR(
-			vulkanData.GetLogicalDevice(),
-			vulkanData.GetSwapchain(),
-			UINT64_MAX, 
-			vulkanData.syncObjects[frame].imageAvailableSemaphore,
-			VK_NULL_HANDLE,
-			&imageIdx);
+		vkResetCommandBuffer(frameRes[frame].commandBuffer, 0);
+		RecordCommandBuffer(frameRes[frame].commandBuffer, imageIdx);
 
-		vkResetCommandBuffer(vulkanData.GetGraphicsQueueFamily().commandBuffers[frame], 0);
-		RecordCommandBuffer(vulkanData.GetGraphicsQueueFamily().commandBuffers[frame], imageIdx);
+		// Reset the fence later, before submitting, to avoid a deadlock.
+		vkResetFences(vulkanData.GetLogicalDevice(), 1, &frameRes[frame].frameFinishedFence);
 
+		VkSemaphore waitSemaphores[]{
+			frameRes[frame].imageAvailableSemaphore
+		};
+		VkPipelineStageFlags waitStages[]{
+			VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+		};
+		VkSemaphore signalSemaphores[]{
+			swapchainImageRes[imageIdx].renderingFinishedSemaphore
+		};
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		VkSemaphore waitSemaphores[]{vulkanData.GetSynchronizationObjects(frame).imageAvailableSemaphore};
-		VkPipelineStageFlags waitStages[]{VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
 		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &vulkanData.GetGraphicsQueueFamily().commandBuffers[frame];
-		VkSemaphore signalSemaphores[]{vulkanData.GetSynchronizationObjects(frame).renderingFinishedSemaphore};
+		submitInfo.pCommandBuffers = &frameRes[frame].commandBuffer;
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
-		if (vkQueueSubmit(
-			vulkanData.GetGraphicsQueueFamily().queueHandle,
-			1, &submitInfo,
-			vulkanData.GetSynchronizationObjects(frame).frameFinishedFence) != VK_SUCCESS) {
-			throw std::runtime_error{ "Failed to submit a command buffer to the graphics queue!" };
+		if (vkQueueSubmit(vulkanData.GetGraphicsQueueFamily().queueHandle, 1,
+						  &submitInfo, frameRes[frame].frameFinishedFence) != VK_SUCCESS) {
+			throw std::runtime_error{"Failed to submit a command buffer to the graphics queue!"};
 		}
-
+	}
+	void GpuApiCtxVk::Present() {
+		VkSemaphore signalSemaphores[]{
+			swapchainImageRes[imageIdx].renderingFinishedSemaphore
+		};
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.waitSemaphoreCount = 1;
 		presentInfo.pWaitSemaphores = signalSemaphores;
-		VkSwapchainKHR swapChains[] = { vulkanData.GetSwapchain() };
+		VkSwapchainKHR swapChains[] = {vulkanData.GetSwapchain()};
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
 		presentInfo.pImageIndices = &imageIdx;
 		presentInfo.pResults = nullptr;
 		VkResult presentResult = vkQueuePresentKHR(vulkanData.GetPresentationQueueFamily().queueHandle, &presentInfo);
-		if (presentResult != VK_SUCCESS) {
-			throw std::runtime_error{ "Failed to present the swap chain image!" };
+		if (!TryHandlePossibleSwapchainError(presentResult)) {
+			throw std::runtime_error{ "Failed to queue an image for presentation!" };
 		}
 	}
-	void GpuApiCtxVk::Present() {
-		// TODO
+
+	void GpuApiCtxVk::OnFramebufferResize() {
+		Synchronize();
+		if (!window->IsMinimized())
+			ResizeSwapchain();
 	}
 
 	const SettingsVk& GpuApiCtxVk::GetSettingsVk() const {
@@ -954,17 +962,21 @@ namespace ember {
 			createInfo.queueFamilyIndexCount = 0;
 			createInfo.pQueueFamilyIndices = nullptr;
 		}
-
 		createInfo.preTransform = swapchainInfo.capabilities.currentTransform; // means no transform
 		createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 		createInfo.presentMode = swapchainData.swapchainPresentMode;
 		createInfo.clipped = VK_TRUE;
-		createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-		if (vkCreateSwapchainKHR(
-			deviceData.logicalDevice, &createInfo, nullptr, &swapchainData.swapchain) != VK_SUCCESS) {
+		createInfo.oldSwapchain = vulkanData.GetSwapchain();
+		if (vkCreateSwapchainKHR(deviceData.logicalDevice, &createInfo,
+								 nullptr, &swapchainData.swapchain) != VK_SUCCESS) {
 			throw std::runtime_error{ "Failed to create a swap chain" };
 		}
+		vkGetSwapchainImagesKHR(deviceData.logicalDevice, swapchainData.swapchain,
+								&swapchainData.swapchainImageCount, nullptr);
+	}
+	void GpuApiCtxVk::DestroySwapchain() {
+		vkDestroySwapchainKHR(vulkanData.GetLogicalDevice(), vulkanData.GetSwapchain(), nullptr);
+		vulkanData.deviceData.swapchainData.swapchain = VK_NULL_HANDLE;
 	}
 	void GpuApiCtxVk::AcquireSwapchainImages() {
 		// Now we can acquire handles to the swap chain images.
@@ -973,32 +985,13 @@ namespace ember {
 		VulkanDeviceData& deviceData = vulkanData.GetDeviceData();
 		VulkanSwapchainData& swapchainData = deviceData.swapchainData;
 
-		std::vector<VkImage> swapchainImagesTmp;
-		vkGetSwapchainImagesKHR(
-			deviceData.logicalDevice,
-			swapchainData.swapchain,
-			&swapchainData.swapchainImageCount, nullptr);
-		swapchainImagesTmp.resize(swapchainData.swapchainImageCount);
-		vkGetSwapchainImagesKHR(
-			deviceData.logicalDevice,
-			swapchainData.swapchain,
-			&swapchainData.swapchainImageCount,
-			swapchainImagesTmp.data());
+		std::vector<VkImage> swapchainImagesTmp(swapchainData.swapchainImageCount);
+		vkGetSwapchainImagesKHR(deviceData.logicalDevice, swapchainData.swapchain,
+								&swapchainData.swapchainImageCount, swapchainImagesTmp.data());
 
-		swapchainData.swapchainImages.resize(swapchainData.swapchainImageCount);
 		for (uint32_t idx = 0; idx < swapchainData.swapchainImageCount; idx++) {
-			swapchainData.swapchainImages[idx].image = swapchainImagesTmp[idx];
+			swapchainImageRes[idx].image = swapchainImagesTmp[idx];
 		}
-		/*
-		int counter{ 0 };
-		std::for_each(
-			swapchainData.swapchainImages.begin(),
-			swapchainData.swapchainImages.end(),
-			[&](VulkanPipelineImage& pipelineImage) {
-				pipelineImage.image = swapchainImagesTmp[counter];
-				counter++;
-			});
-		*/
 	}
 	void GpuApiCtxVk::CreateSwapchainImageViews() {
 		VulkanDeviceData& deviceData = vulkanData.GetDeviceData();
@@ -1006,7 +999,7 @@ namespace ember {
 		for (uint32_t idx = 0; idx < swapchainData.swapchainImageCount; idx++) {
 			VkImageViewCreateInfo createInfo{};
 			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-			createInfo.image = swapchainData.swapchainImages[idx].image;
+			createInfo.image = swapchainImageRes[idx].image;
 			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			createInfo.format = swapchainData.swapchainSurfaceFormat.format;
 			createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -1018,9 +1011,8 @@ namespace ember {
 			createInfo.subresourceRange.levelCount = 1;
 			createInfo.subresourceRange.baseArrayLayer = 0;
 			createInfo.subresourceRange.layerCount = 1;
-			if (vkCreateImageView(
-				deviceData.logicalDevice, &createInfo, nullptr,
-				&swapchainData.swapchainImages[idx].imageView) != VK_SUCCESS) {
+			if (vkCreateImageView(deviceData.logicalDevice, &createInfo, nullptr,
+								  &swapchainImageRes[idx].imageView) != VK_SUCCESS) {
 				throw std::runtime_error{ "Failed to create an image view for a swap chain image!" };
 			}
 		}
@@ -1028,19 +1020,50 @@ namespace ember {
 	void GpuApiCtxVk::DestroySwapchainImageViews() {
 		VulkanDeviceData& deviceData = vulkanData.GetDeviceData();
 		VulkanSwapchainData& swapchainData = vulkanData.GetSwapchainData();
-		/*
-		for (uint32_t idx = 0; idx < swapchainData.swapchainImageCount; idx++) {
-			vkDestroyImageView(deviceData.logicalDevice, swapchainData.swapchainImages[idx].imageView, nullptr);
-			pipelineImage.imageView = VK_NULL_HANDLE;
-		}
-		*/
-		std::for_each(
-			swapchainData.swapchainImages.begin(),
-			swapchainData.swapchainImages.end(),
-			[&](VulkanImage& vulkanImage) {
-				vkDestroyImageView(deviceData.logicalDevice, vulkanImage.imageView, nullptr);
-				vulkanImage.imageView = VK_NULL_HANDLE;
+		std::for_each(swapchainImageRes.begin(), swapchainImageRes.end(),
+			[&](VulkanSwapchainImageResources& res) {
+				vkDestroyImageView(deviceData.logicalDevice, res.imageView, nullptr);
+				res.imageView = VK_NULL_HANDLE;
 			});
+	}
+	void GpuApiCtxVk::ResizeSwapchain() {
+		DestroySwapchainImageResourceSynchronizationObjects();
+		DestroyFramebuffers();
+		DestroySwapchainImageViews();
+		DestroySwapchain();
+
+		vulkanData.deviceData.physicalDeviceInfo.swapchainInfo =
+			QuerySwapchainSupport(vulkanData.GetPhysicalDevice());
+		PickSwapchainProperties();
+		CreateSwapchain();
+		swapchainImageRes.resize(vulkanData.GetSwapchainData().swapchainImageCount);
+		AcquireSwapchainImages();
+		CreateSwapchainImageViews();
+		CreateFramebuffers();
+		CreateSwapchainImageResourceSynchronizationObjects();
+	}
+	bool GpuApiCtxVk::TryHandlePossibleSwapchainError(VkResult result) {
+		if (result == VK_SUCCESS)
+			return true;
+		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+			Synchronize();
+			ResizeSwapchain();
+			return true;
+		} else if (result == VK_SUBOPTIMAL_KHR) {
+			// TODO: do nothing for now, but should we handle it differently?
+			return true;
+		} else if (result == VK_ERROR_SURFACE_LOST_KHR) {
+			// 1. Destroy surface
+			// 2. Create it again
+			// 3. Resize the swapchain
+			Synchronize();
+			vkDestroySurfaceKHR(vulkanData.GetInstance(), vulkanData.surface, nullptr);
+			CreateVulkanWindowSurface();
+			ResizeSwapchain();
+			return true;
+		} else /* if (result != VK_SUCCESS) */ {
+			return false;
+		}
 	}
 
 	void GpuApiCtxVk::CreateGraphicsPipeline() {
@@ -1126,22 +1149,21 @@ namespace ember {
 
 	void GpuApiCtxVk::CreateFramebuffers() {
 		const VulkanSwapchainData& swapchainData = vulkanData.GetSwapchainData();
-		framebuffers.resize(swapchainData.swapchainImages.size());
 		uint32_t imgIdx{0};
-		for (VulkanFramebuffer& framebuffer : framebuffers) {
-			framebuffer.SetFramebufferSize(
+		for (VulkanSwapchainImageResources& imageRes : swapchainImageRes) {
+			imageRes.framebuffer.SetFramebufferSize(
 				swapchainData.swapchainExtent.width,
 				swapchainData.swapchainExtent.height);
-			framebuffer.SetRenderPass(renderPass);
-			framebuffer.SetAttachmentCount(1);
-			framebuffer.SetAttachment(swapchainData.swapchainImages[imgIdx++].imageView, 0);
-			framebuffer.CreateFramebuffer(vulkanData.GetLogicalDevice());
+			imageRes.framebuffer.SetRenderPass(renderPass);
+			imageRes.framebuffer.SetAttachmentCount(1);
+			imageRes.framebuffer.SetAttachment(imageRes.imageView, 0);
+			imageRes.framebuffer.CreateFramebuffer(vulkanData.GetLogicalDevice());
 		}
 	}
 	void GpuApiCtxVk::DestroyFramebuffers() {
-		for (VulkanFramebuffer& framebuffer : framebuffers) {
-			framebuffer.DestroyFramebuffer(vulkanData.GetLogicalDevice());
-			framebuffer.ClearAttachments();
+		for (VulkanSwapchainImageResources& imageRes : swapchainImageRes) {
+			imageRes.framebuffer.DestroyFramebuffer(vulkanData.GetLogicalDevice());
+			imageRes.framebuffer.ClearAttachments();
 		}
 	}
 
@@ -1151,12 +1173,11 @@ namespace ember {
 		graphicsCommandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		graphicsCommandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		graphicsCommandPoolInfo.queueFamilyIndex = graphicsQueueFamily.queueFamilyId;
-		if (vkCreateCommandPool(
-			vulkanData.GetLogicalDevice(),
-			&graphicsCommandPoolInfo,
-			nullptr,
-			&graphicsQueueFamily.commandPool) != VK_SUCCESS) {
-			throw std::runtime_error("Failed to create a graphics command pool!");
+		if (vkCreateCommandPool(vulkanData.GetLogicalDevice(),
+								&graphicsCommandPoolInfo,
+								nullptr,
+								&graphicsQueueFamily.commandPool) != VK_SUCCESS) {
+			throw std::runtime_error{"Failed to create a graphics command pool!"};
 		}
 	}
 	void GpuApiCtxVk::DestroyCommandPools() {
@@ -1165,18 +1186,16 @@ namespace ember {
 	}
 	void GpuApiCtxVk::CreateCommandBuffers() {
 		VulkanQueueFamily& graphicsQueueFamily = vulkanData.GetGraphicsQueueFamily();
-		graphicsQueueFamily.commandBuffers.resize(framesInFlight);
 
 		VkCommandBufferAllocateInfo commandBufferInfo{};
 		commandBufferInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 		commandBufferInfo.commandPool = graphicsQueueFamily.commandPool;
 		commandBufferInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		commandBufferInfo.commandBufferCount = 1;
-		for (uint32_t i = 0; i < framesInFlight; i++) {
-			if (vkAllocateCommandBuffers(
-				vulkanData.GetLogicalDevice(),
-				&commandBufferInfo,
-				&graphicsQueueFamily.commandBuffers[i]) != VK_SUCCESS) {
+		for (uint32_t idx = 0; idx < framesInFlight; idx++) {
+			if (vkAllocateCommandBuffers(vulkanData.GetLogicalDevice(),
+										 &commandBufferInfo,
+										 &frameRes[idx].commandBuffer) != VK_SUCCESS) {
 				throw std::runtime_error{ "Failed to allocate a graphics command buffer!" };
 			}
 		}
@@ -1191,7 +1210,7 @@ namespace ember {
 		VkRenderPassBeginInfo renderPassBeginInfo{};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		renderPassBeginInfo.renderPass = renderPass->GetRenderPass();
-		renderPassBeginInfo.framebuffer = framebuffers[swapchainImageIdx].GetFramebuffer();
+		renderPassBeginInfo.framebuffer = swapchainImageRes[swapchainImageIdx].framebuffer.GetFramebuffer();
 		renderPassBeginInfo.renderArea.offset = VkOffset2D{ 0, 0 };
 		renderPassBeginInfo.renderArea.extent = vulkanData.GetSwapchainData().swapchainExtent;
 
@@ -1232,41 +1251,49 @@ namespace ember {
 	}
 
 	void GpuApiCtxVk::CreateSynchronizationObjects() {
-		vulkanData.syncObjects.resize(framesInFlight);
+		CreateFrameResourceSynchronizationObjects();
+		CreateSwapchainImageResourceSynchronizationObjects();
+	}
+	void GpuApiCtxVk::CreateFrameResourceSynchronizationObjects() {
 		for (uint32_t i = 0; i < framesInFlight; i++) {
 			VkSemaphoreCreateInfo semaphoreCreateInfo{};
 			semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-			if (vkCreateSemaphore(
-				vulkanData.GetLogicalDevice(),
-				&semaphoreCreateInfo,
-				nullptr,
-				&vulkanData.syncObjects[i].imageAvailableSemaphore) != VK_SUCCESS) {
+			if (vkCreateSemaphore(vulkanData.GetLogicalDevice(), &semaphoreCreateInfo,
+				nullptr, &frameRes[i].imageAvailableSemaphore) != VK_SUCCESS) {
 				throw std::runtime_error{ "Failed to create an 'imageAvailableSemaphore' semaphore!" };
-			}
-			if (vkCreateSemaphore(
-				vulkanData.GetLogicalDevice(),
-				&semaphoreCreateInfo,
-				nullptr,
-				&vulkanData.syncObjects[i].renderingFinishedSemaphore) != VK_SUCCESS) {
-				throw std::runtime_error{ "Failed to create an 'renderingFinishedSemaphore' semaphore!" };
 			}
 			VkFenceCreateInfo fenceCreateInfo{};
 			fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 			fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-			if (vkCreateFence(
-				vulkanData.GetLogicalDevice(),
-				&fenceCreateInfo,
-				nullptr,
-				&vulkanData.syncObjects[i].frameFinishedFence) != VK_SUCCESS) {
-				throw std::runtime_error{ "Failed to create an 'frameFinishedFence' fence!" };
+			if (vkCreateFence(vulkanData.GetLogicalDevice(), &fenceCreateInfo,
+				nullptr, &frameRes[i].frameFinishedFence) != VK_SUCCESS) {
+				throw std::runtime_error{ "Failed to create a 'frameFinishedFence' fence!" };
+			}
+		}
+	}
+	void GpuApiCtxVk::CreateSwapchainImageResourceSynchronizationObjects() {
+		for (uint32_t i = 0; i < vulkanData.GetSwapchainData().swapchainImageCount; i++) {
+			VkSemaphoreCreateInfo semaphoreCreateInfo{};
+			semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+			if (vkCreateSemaphore(vulkanData.GetLogicalDevice(), &semaphoreCreateInfo,
+				nullptr, &swapchainImageRes[i].renderingFinishedSemaphore) != VK_SUCCESS) {
+				throw std::runtime_error{ "Failed to create a 'renderingFinishedSemaphore' semaphore!" };
 			}
 		}
 	}
 	void GpuApiCtxVk::DestroySynchronizationObjects() {
+		DestroyFrameResourceSynchronizationObjects();
+		DestroySwapchainImageResourceSynchronizationObjects();
+	}
+	void GpuApiCtxVk::DestroyFrameResourceSynchronizationObjects() {
 		for (uint32_t i = 0; i < framesInFlight; i++) {
-			vkDestroySemaphore(vulkanData.GetLogicalDevice(), vulkanData.syncObjects[i].imageAvailableSemaphore, nullptr);
-			vkDestroySemaphore(vulkanData.GetLogicalDevice(), vulkanData.syncObjects[i].renderingFinishedSemaphore, nullptr);
-			vkDestroyFence(vulkanData.GetLogicalDevice(), vulkanData.syncObjects[i].frameFinishedFence, nullptr);
+			vkDestroySemaphore(vulkanData.GetLogicalDevice(), frameRes[i].imageAvailableSemaphore, nullptr);
+			vkDestroyFence(vulkanData.GetLogicalDevice(), frameRes[i].frameFinishedFence, nullptr);
+		}
+	}
+	void GpuApiCtxVk::DestroySwapchainImageResourceSynchronizationObjects() {
+		for (uint32_t i = 0; i < vulkanData.GetSwapchainData().swapchainImageCount; i++) {
+			vkDestroySemaphore(vulkanData.GetLogicalDevice(), swapchainImageRes[i].renderingFinishedSemaphore, nullptr);
 		}
 	}
 	void GpuApiCtxVk::Synchronize() {

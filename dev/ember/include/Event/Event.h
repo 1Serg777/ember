@@ -63,6 +63,19 @@ namespace ember {
 		bool close{false};
 	};
 
+	class FramebufferResizeEventData : public EventData {
+	public:
+		static constexpr EventType eventType = EventType::FRAMEBUFFER_RESIZE;
+		using EventCallbackType = std::function<void(const FramebufferResizeEventData&)>;
+
+		FramebufferResizeEventData()
+			: EventData(EventType::FRAMEBUFFER_RESIZE) {
+		}
+
+		uint32_t width{ 0 };
+		uint32_t height{ 0 };
+	};
+
 	class EventCallbackBase {
 	public:
 		using EventCallbackId = int;

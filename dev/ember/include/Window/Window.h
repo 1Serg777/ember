@@ -61,10 +61,12 @@ namespace ember {
 
 		bool IsFullScreen() const;
 		bool IsVisible() const;
+		bool IsMinimized() const;
 
 	protected:
 		WindowSettings windowSettings;
 		EventRegistry* eventRegistry{nullptr};
+		bool isMinimized{nullptr};
 	};
 
 	Window* CreateWindow(const WindowSettings& windowSettings);
