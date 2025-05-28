@@ -23,6 +23,7 @@ namespace ember {
 
 		Dimensions2D windowDimensions{1920, 1080};
 		Dimensions2D framebufferDimensions{windowDimensions};
+		Dimensions2D minSizeLimit{320, 240};
 
 		WindowApiType type{WindowApiType::EM_GLFW};
 

@@ -195,6 +195,7 @@ namespace ember {
 #endif
 
 		void CreateVulkanWindowSurface();
+		void DestroyVulkanWindowSurface();
 		void CreateVulkanWindowGlfwSurface();
 #ifdef EMBER_PLATFORM_WIN32
 		void CreateVulkanWindowWin32Surface();
@@ -246,7 +247,7 @@ namespace ember {
 		void CreateSwapchainImageViews();
 		void DestroySwapchainImageViews();
 		void ResizeSwapchain();
-		bool TryHandlePossibleSwapchainError(VkResult result);
+		void HandleSurfaceLostError();
 
 		void CreateGraphicsPipeline();
 		void CreateRenderPass();

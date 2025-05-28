@@ -12,6 +12,7 @@
 #endif
 
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -197,12 +198,15 @@ namespace ember {
 													   UINT64_MAX, 
 													   frameRes[frame].imageAvailableSemaphore,
 													   VK_NULL_HANDLE, &imageIdx);
-			if (!TryHandlePossibleSwapchainError(acquireImageResult)) {
-				throw std::runtime_error{"Failed to acquire the next swapchain image!"};
+			if (acquireImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
+				OnFramebufferResize();
+			} else if (acquireImageResult == VK_ERROR_SURFACE_LOST_KHR) {
+				HandleSurfaceLostError();
+			} else if (acquireImageResult == VK_SUBOPTIMAL_KHR) {
+				break;
+			} else if (acquireImageResult != VK_SUCCESS) {
+				throw std::runtime_error{ "Failed to acquire the next swapchain image!" };
 			}
-			if (acquireImageResult == VK_SUBOPTIMAL_KHR)
-				break; // VK_SUBOPTIMAL_KHR is handled here because we're in a loop.
-					   // In case the swapchain is indeed suboptimal, we simply "break".
 		} while (acquireImageResult != VK_SUCCESS);
 
 		vkResetCommandBuffer(frameRes[frame].commandBuffer, 0);
@@ -248,8 +252,12 @@ namespace ember {
 		presentInfo.pImageIndices = &imageIdx;
 		presentInfo.pResults = nullptr;
 		VkResult presentResult = vkQueuePresentKHR(vulkanData.GetPresentationQueueFamily().queueHandle, &presentInfo);
-		if (!TryHandlePossibleSwapchainError(presentResult)) {
-			throw std::runtime_error{ "Failed to queue an image for presentation!" };
+		if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
+			OnFramebufferResize();
+		} else if (presentResult == VK_ERROR_SURFACE_LOST_KHR) {
+			HandleSurfaceLostError();
+		} else if (presentResult != VK_SUCCESS) {
+			throw std::runtime_error{ "Failed to present a swapchain image!" };
 		}
 	}
 
@@ -559,6 +567,10 @@ namespace ember {
 		else {
 			assert(false && "[Vulkan Window Surface] Unsupported Window API!");
 		}
+	}
+	void GpuApiCtxVk::DestroyVulkanWindowSurface() {
+		vkDestroySurfaceKHR(vulkanData.GetInstance(), vulkanData.surface, nullptr);
+		vulkanData.surface = VK_NULL_HANDLE;
 	}
 	void GpuApiCtxVk::CreateVulkanWindowGlfwSurface() {
 		WindowGlfw* windowGlfw = static_cast<WindowGlfw*>(window);
@@ -1042,28 +1054,12 @@ namespace ember {
 		CreateFramebuffers();
 		CreateSwapchainImageResourceSynchronizationObjects();
 	}
-	bool GpuApiCtxVk::TryHandlePossibleSwapchainError(VkResult result) {
-		if (result == VK_SUCCESS)
-			return true;
-		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-			Synchronize();
+	void GpuApiCtxVk::HandleSurfaceLostError() {
+		Synchronize();
+		DestroyVulkanWindowSurface();
+		CreateVulkanWindowSurface();
+		if (!window->IsMinimized())
 			ResizeSwapchain();
-			return true;
-		} else if (result == VK_SUBOPTIMAL_KHR) {
-			// TODO: do nothing for now, but should we handle it differently?
-			return true;
-		} else if (result == VK_ERROR_SURFACE_LOST_KHR) {
-			// 1. Destroy surface
-			// 2. Create it again
-			// 3. Resize the swapchain
-			Synchronize();
-			vkDestroySurfaceKHR(vulkanData.GetInstance(), vulkanData.surface, nullptr);
-			CreateVulkanWindowSurface();
-			ResizeSwapchain();
-			return true;
-		} else /* if (result != VK_SUCCESS) */ {
-			return false;
-		}
 	}
 
 	void GpuApiCtxVk::CreateGraphicsPipeline() {
@@ -1214,6 +1210,14 @@ namespace ember {
 		renderPassBeginInfo.renderArea.offset = VkOffset2D{ 0, 0 };
 		renderPassBeginInfo.renderArea.extent = vulkanData.GetSwapchainData().swapchainExtent;
 
+		// But OpenGL outputs this color "right" by default.
+		// What's the difference then?
+		clearColor = VkClearColorValue{
+			215.0f / 255.0f, // std::pow(215.0f / 255.0f, 2.2f),
+			153.0f / 255.0f, // std::pow(153.0f / 255.0f, 2.2f),
+			33.0f / 255.0f, // std::pow(33.0f / 255.0f, 2.2f),
+			1.0f
+		};
 		VkClearValue clearValue{clearColor};
 		renderPassBeginInfo.clearValueCount = 1;
 		renderPassBeginInfo.pClearValues = &clearValue;

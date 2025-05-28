@@ -53,7 +53,7 @@ namespace ember {
     }
 
     void WindowGlfw::CreateGlfwWindow(WindowGlfw* sharedCtxWindow) {
-        InitializeWindowGlfwParams();
+        SetWindowHints();
         GLFWwindow* sharedWindowHandle{ nullptr };
         if (sharedCtxWindow)
             sharedWindowHandle = sharedCtxWindow->GetApiSpecificHandle();
@@ -64,7 +64,8 @@ namespace ember {
             glfwTerminate();
             GLFW_ERROR("Failed to create an application window!\n");
         }
-        SetFramebufferDimensions();
+        SetMinSizeLimit(windowSettings.minSizeLimit.Width(), windowSettings.minSizeLimit.Height());
+        RetrieveFramebufferDimensions();
         RegisterGlfwCallbacks();
     }
 
@@ -73,7 +74,6 @@ namespace ember {
 #if defined(DEBUG) || defined(_DEBUG)
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
 #endif
-
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, oglSettings.openglVersionMajor);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, oglSettings.openglVersionMinor);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
@@ -99,12 +99,15 @@ namespace ember {
         return windowHandle;
     }
 
-    void WindowGlfw::InitializeWindowGlfwParams() {
+    void WindowGlfw::SetWindowHints() {
         SetResizability(windowSettings.isResizable ? GLFW_TRUE : GLFW_FALSE);
         SetVisibility(windowSettings.isVisible ? GLFW_TRUE : GLFW_FALSE);
     }
     void WindowGlfw::SetResizability(int resize) {
         glfwWindowHint(GLFW_RESIZABLE, resize);
+    }
+    void WindowGlfw::SetMinSizeLimit(int width, int height) {
+        glfwSetWindowSizeLimits(windowHandle, width, height, GLFW_DONT_CARE, GLFW_DONT_CARE);
     }
     void WindowGlfw::SetVisibility(int visibility) {
         glfwWindowHint(GLFW_VISIBLE, visibility);
@@ -113,7 +116,7 @@ namespace ember {
         glfwWindowHint(GLFW_CLIENT_API, api);
     }
     
-    void WindowGlfw::SetFramebufferDimensions() {
+    void WindowGlfw::RetrieveFramebufferDimensions() {
         int width{0};
         int height{0};
         glfwGetFramebufferSize(windowHandle, &width, &height);
