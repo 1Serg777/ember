@@ -21,6 +21,7 @@ namespace ember {
     private:
         void InitializeLibraries();
         void InitializeSystems();
+
         void TerminateLibraries();
         void TerminateSystems();
 
@@ -32,6 +33,7 @@ namespace ember {
         void OnWindowClose(const WindowCloseEventData& windowCloseEventData);
         void OnFramebufferResizeEvent(const FramebufferResizeEventData& framebufferResizeEventData);
 
+        CmdLineArgs cmdLineArgs;
         std::unique_ptr<EventRegistry> eventRegistry;
         std::unique_ptr<GpuApiCtx> gpuApiCtx;
         std::unique_ptr<Window> window;

@@ -1,13 +1,20 @@
-#include "Core/CmdLineArgs.h"
+#include "Core/CmdLineArgsParser.h"
 #include "EmberLvlEditorApp.h"
 
 #include <cstdlib>
 #include <iostream>
-#include <filesystem>
+#include <stdexcept>
 
 int main(int argc, char* argv[]) {
-    ember::CmdLineArgs cmdLineArgs{ argc, argv };
-    ember::EmberLvlEditorApp app{ cmdLineArgs };
+    ember::CmdLineArgsParser cmdLineArgsParser{};
+    try {
+        cmdLineArgsParser.Parse(argc, argv);
+    } catch (std::runtime_error& re) {
+        std::cerr << "Command Line Arguments Parser Error: " << re.what() << std::endl;
+        cmdLineArgsParser.PrintHelp();
+        return EXIT_FAILURE;
+    }
+    ember::EmberLvlEditorApp app{cmdLineArgsParser.GetCmdLineArgs()};
     if (!app.Initialize()) {
         return EXIT_FAILURE;
     }

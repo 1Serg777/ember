@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/CmdLineArgs.h"
 #include "Window/Window.h"
 
 #include <cstdint>
@@ -33,6 +34,8 @@ namespace ember {
 
 		virtual GpuApiType GetGpuApiType() const = 0;
 	};
+
+	GpuApiType ChooseGpuApi(const CmdLineArgs& cmdLineArgs);
 
 	/* Add more configuration parameters? */
 	GpuApiCtx* CreateGpuApiCtx(GpuApiType gpuApiType, Window* window);

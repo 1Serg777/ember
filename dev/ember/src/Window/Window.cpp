@@ -97,6 +97,131 @@ namespace ember {
 		return isMinimized;
 	}
 
+	WindowApiType ChooseWindowApi(const CmdLineArgs& cmdLineArgs) {
+		WindowApiType windowApiType = WindowApiType::EM_GLFW;
+		if (cmdLineArgs.HasOption("windowapi")) {
+			// --windowapi[=windowapiname], where
+			//   windowapiname is one of
+			//   1) glfw
+			//   2) win32
+			//   3) xlib (x11)
+			//   4) xcb (x11)
+			//   5) wayland
+			const Opt& opt = cmdLineArgs.GetOpt("windowapi");
+			std::string_view value = opt.GetValue().GetString();
+			if (value == "glfw") {
+				windowApiType = WindowApiType::EM_GLFW;
+			}
+#ifdef EMBER_PLATFORM_WIN32
+			else if (value == "win32") {
+				windowApiType = WindowApiType::EM_WIN32;
+			}
+#elif EMBER_PLATFORM_LINUX
+			else if (value == "xlib") {
+				gpuApiType = GpuApiType::VULKAN;
+			} else if (value == "xcb") {
+				gpuApiType = GpuApiType::VULKAN;
+			} else if (value == "wayland") {
+				gpuApiType = GpuApiType::VULKAN;
+			}
+#else
+#error "Platform is not supported!"
+#endif
+			// At this point we're 100% sure that the options passed are correct.
+			// In other words, the check I was trying to do below has already been done in the parser.
+			/*
+			else {
+				std::cerr << "Unknown Window API type passed in the command line arguments: "
+			}
+			*/
+		}
+		return windowApiType;
+	}
+	WindowSettings ChooseWindowSettings(const CmdLineArgs& cmdLineArgs) {
+		WindowSettings windowSettings{};
+		windowSettings.windowDimensions = ChooseWindowDimensions(cmdLineArgs);
+		windowSettings.minSizeLimit = ChooseWindowMinDimensions(cmdLineArgs);
+		windowSettings.type = ChooseWindowApi(cmdLineArgs);
+		windowSettings.isFullscreen = ChooseWindowFullScreenMode(cmdLineArgs);
+		windowSettings.isVisible = ChooseWindowVisibility(cmdLineArgs);
+		windowSettings.isResizable = ChooseWindowResizeability(cmdLineArgs);
+		return windowSettings;
+	}
+	Dimensions2D ChooseWindowDimensions(const CmdLineArgs& cmdLineArgs) {
+		uint32_t windowWidth{1920};
+		uint32_t windowHeight{1080};
+		if (cmdLineArgs.HasOption("window-width")) {
+			const Opt& opt = cmdLineArgs.GetOpt("window-width");
+			windowWidth = static_cast<uint32_t>(opt.GetValue().GetInt());
+		}
+		if (cmdLineArgs.HasOption("window-height")) {
+			const Opt& opt = cmdLineArgs.GetOpt("window-height");
+			windowHeight = static_cast<uint32_t>(opt.GetValue().GetInt());
+		}
+		return Dimensions2D{windowWidth, windowHeight};
+	}
+	Dimensions2D ChooseWindowMinDimensions(const CmdLineArgs& cmdLineArgs) {
+		uint32_t windowMinWidth{320};
+		uint32_t windowMinHeight{240};
+		if (cmdLineArgs.HasOption("window-min-width")) {
+			const Opt& opt = cmdLineArgs.GetOpt("window-min-width");
+			windowMinWidth = static_cast<uint32_t>(opt.GetValue().GetInt());
+		}
+		if (cmdLineArgs.HasOption("window-min-height")) {
+			const Opt& opt = cmdLineArgs.GetOpt("window-min-height");
+			windowMinHeight = static_cast<uint32_t>(opt.GetValue().GetInt());
+		}
+		return Dimensions2D{windowMinWidth, windowMinHeight};
+	}
+	bool ChooseWindowFullScreenMode(const CmdLineArgs& cmdLineArgs) {
+		// The argument can be one of the following:
+		// --fullscreen=on
+		// --fullscreen=off (default)
+		bool isFullScreen{false};
+		if (cmdLineArgs.HasOption("fullscreen")) {
+			const Opt& opt = cmdLineArgs.GetOpt("fullscreen");
+			std::string_view value = opt.GetValue().GetString();
+			if (value == "on") {
+				isFullScreen = true;
+			} else if (value == "off") {
+				isFullScreen = false;
+			}
+		}
+		return isFullScreen;
+	}
+	bool ChooseWindowVisibility(const CmdLineArgs& cmdLineArgs) {
+		// The argument can be one of the following:
+		// --visible=on (default)
+		// --visible=off
+		bool isVisible{ true };
+		if (cmdLineArgs.HasOption("visible")) {
+			const Opt& opt = cmdLineArgs.GetOpt("visible");
+			std::string_view value = opt.GetValue().GetString();
+			if (value == "on") {
+				isVisible = true;
+			} else if (value == "off") {
+				isVisible = false;
+			}
+		}
+		return isVisible;
+	}
+	bool ChooseWindowResizeability(const CmdLineArgs& cmdLineArgs) {
+		// The argument can be one of the following:
+		// --resizable=on (default)
+		// --resizable=off
+		bool isResizable{ true };
+		if (cmdLineArgs.HasOption("resizable")) {
+			const Opt& opt = cmdLineArgs.GetOpt("resizable");
+			std::string_view value = opt.GetValue().GetString();
+			if (value == "on") {
+				isResizable = true;
+			} else if (value == "off") {
+				isResizable = false;
+			}
+		}
+		return isResizable;
+	}
+
 	Window* CreateWindow(const WindowSettings& windowSettings) {
 #ifdef EMBER_PLATFORM_WIN32
 		// 1. On Windows we really only have one option: Win32 API.

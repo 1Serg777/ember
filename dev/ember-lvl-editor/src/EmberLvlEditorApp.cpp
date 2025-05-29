@@ -14,7 +14,8 @@
 
 namespace ember {
 
-	EmberLvlEditorApp::EmberLvlEditorApp(const CmdLineArgs& cmdLineArgs) {
+	EmberLvlEditorApp::EmberLvlEditorApp(const CmdLineArgs& cmdLineArgs)
+		:cmdLineArgs(cmdLineArgs) {
 	}
 
 	bool EmberLvlEditorApp::Initialize() {
@@ -63,22 +64,20 @@ namespace ember {
 	void EmberLvlEditorApp::InitializeSystems() {
 		eventRegistry = std::make_unique<EventRegistry>();
 
-		// Later, these settings will probably be retrieved from some configuration file.
-		GpuApiType gpuApiType = GpuApiType::VULKAN;
-		WindowSettings windowSettings{};
-		windowSettings.type = WindowApiType::EM_GLFW;
-		windowSettings.isResizable = true;
+		GpuApiType gpuApi = ChooseGpuApi(cmdLineArgs);
+		WindowSettings windowSettings = ChooseWindowSettings(cmdLineArgs);
 
 		// Here the objects (of the apporpriate classes according to the settings)
 		// are created and their settings are set up.
 		// However, the actual initialization happens later.
 		window = std::unique_ptr<Window>(CreateWindow(windowSettings));
-		gpuApiCtx = std::unique_ptr<GpuApiCtx>(CreateGpuApiCtx(gpuApiType, window.get()));
+		gpuApiCtx = std::unique_ptr<GpuApiCtx>(CreateGpuApiCtx(gpuApi, window.get()));
 
 		InitializeWindowAndGpuApiContext(window.get(), gpuApiCtx.get());
 		SetCurrentGpuApiCtx(gpuApiCtx.get());
 		InitializeGuiContext();
 	}
+
 	void EmberLvlEditorApp::TerminateLibraries() {
 		TerminateWindowLibrary(WindowApiType::EM_GLFW);
 	}

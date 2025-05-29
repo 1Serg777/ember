@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/CmdLineArgs.h"
 #include "Event/EventRegistry.h"
 #include "Math/MathUtil.h"
 
@@ -69,6 +70,14 @@ namespace ember {
 		EventRegistry* eventRegistry{nullptr};
 		bool isMinimized{nullptr};
 	};
+
+	WindowApiType ChooseWindowApi(const CmdLineArgs& cmdLineArgs);
+	WindowSettings ChooseWindowSettings(const CmdLineArgs& cmdLineArgs);
+	Dimensions2D ChooseWindowDimensions(const CmdLineArgs& cmdLineArgs);
+	Dimensions2D ChooseWindowMinDimensions(const CmdLineArgs& cmdLineArgs);
+	bool ChooseWindowFullScreenMode(const CmdLineArgs& cmdLineArgs);
+	bool ChooseWindowVisibility(const CmdLineArgs& cmdLineArgs);
+	bool ChooseWindowResizeability(const CmdLineArgs& cmdLineArgs);
 
 	Window* CreateWindow(const WindowSettings& windowSettings);
 
