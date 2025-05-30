@@ -9,6 +9,51 @@
 
 namespace ember {
 
+	// When defining a new command line option, don't forget to
+	// define its requirements in the 'CmdLineArgs.cpp' file!
+	namespace cmdopt {
+		// Options
+
+		constexpr std::string_view gpuApiOpt{"gpu-api"};
+		constexpr std::string_view windowApiOpt{"window-api"};
+
+		constexpr std::string_view windowWidthOpt{"window-width"};
+		constexpr std::string_view windowHeightOpt{"window-height"};
+		constexpr std::string_view windowMinWidthOpt{"window-min-width"};
+		constexpr std::string_view windowMinHeightOpt{"window-min-height"};
+
+		constexpr std::string_view fullscreenOpt{"fullscreen"};
+		constexpr std::string_view visibleOpt{"visible"};
+		constexpr std::string_view resizableOpt{"resizable"};
+
+		constexpr std::string_view numIntTestOpt{"num-int-test"};
+		constexpr std::string_view numFloatTestOpt{"num-float-test"};
+
+		// Option values
+
+		constexpr std::string_view gpuApiOpenglVal{"opengl"};
+		constexpr std::string_view gpuApiVulkanVal{"vulkan"};
+
+		constexpr std::string_view windowApiGlfwVal{"glfw"};
+#ifdef EMBER_PLATFORM_WIN32
+		constexpr std::string_view windowApiWin32Val{"win32"};
+#elif EMBER_PLATFORM_LINUX
+		constexpr std::string_view windowApiXlibVal{"xlib"};
+		constexpr std::string_view windowApiXcbVal{"xcb"};
+		constexpr std::string_view windowApiWaylandVal{"wayland"};
+#endif
+		constexpr std::string_view optOnVal{"on"};
+		constexpr std::string_view optOffVal{"off"};
+
+		constexpr int64_t intZeroVal{0};
+		constexpr int64_t intOneVal{1};
+
+		constexpr double floatZeroVal{0.0};
+		constexpr double floatHalfVal{0.5};
+		constexpr double floatOneVal{1.0};
+	}
+
+
 	enum class OptType {
 		UNDEFINED,
 		SINGLE_LETTER, // -w, -h, etc.
@@ -18,8 +63,8 @@ namespace ember {
 	enum class ArgType {
 		UNDEFINED,
 		STRING, // value or "value"
-		INTCONST, // 18, 5 (but not 05), etc.
-		FLOATCONST, // 3.14, 0.53 (but not .53), 6.0 (but not 6.), etc.
+		INTCONST, // 18, 5, 001, etc.
+		FLOATCONST, // 3.14, 0.53, .31, 6.0, 8., etc.
 	};
 
 	// We reuse the Arg structure for option values and option arguments.

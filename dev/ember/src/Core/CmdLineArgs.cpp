@@ -29,13 +29,16 @@ namespace ember {
 	}
 
 	void Opt::SetValue(std::string_view strVal) {
-		optVal.value().arg = strVal;
+		Arg optVal{strVal};
+		this->optVal = optVal;
 	}
 	void Opt::SetValue(int64_t intVal) {
-		optVal.value().arg = intVal;
+		Arg optVal{intVal};
+		this->optVal = optVal;
 	}
 	void Opt::SetValue(double floatVal) {
-		optVal.value().arg = floatVal;
+		Arg optVal{floatVal};
+		this->optVal = optVal;
 	}
 
 	void Opt::AddArg(const Arg& arg) {

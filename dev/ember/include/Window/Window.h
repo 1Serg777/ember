@@ -14,8 +14,9 @@ namespace ember {
 #ifdef EMBER_PLATFORM_WIN32
 		EM_WIN32,
 #elif EMBER_PLATFORM_LINUX
+		EM_XLIB,
+		EM_XCB,
 		EM_WAYLAND,
-		EM_X11,
 #endif
 	};
 

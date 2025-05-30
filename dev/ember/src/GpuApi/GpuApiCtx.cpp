@@ -10,16 +10,16 @@ namespace ember {
 
 	GpuApiType ChooseGpuApi(const CmdLineArgs& cmdLineArgs) {
 		GpuApiType gpuApiType = GpuApiType::OPENGL;
-		if (cmdLineArgs.HasOption("gpuapi")) {
+		if (cmdLineArgs.HasOption(cmdopt::gpuApiOpt)) {
 			// --gpuapi[=apiname], where
 			//   apiname is one of
 			//   1) opengl
 			//   2) vulkan
-			const Opt& opt = cmdLineArgs.GetOpt("gpuapi");
+			const Opt& opt = cmdLineArgs.GetOpt(cmdopt::gpuApiOpt);
 			std::string_view value = opt.GetValue().GetString();
-			if (value == "opengl") {
+			if (value == cmdopt::gpuApiOpenglVal) {
 				gpuApiType = GpuApiType::OPENGL;
-			} else if (value == "vulkan") {
+			} else if (value == cmdopt::gpuApiVulkanVal) {
 				gpuApiType = GpuApiType::VULKAN;
 			}
 			// At this point we're 100% sure that the options passed are correct.

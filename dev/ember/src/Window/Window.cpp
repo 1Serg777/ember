@@ -99,7 +99,7 @@ namespace ember {
 
 	WindowApiType ChooseWindowApi(const CmdLineArgs& cmdLineArgs) {
 		WindowApiType windowApiType = WindowApiType::EM_GLFW;
-		if (cmdLineArgs.HasOption("windowapi")) {
+		if (cmdLineArgs.HasOption(cmdopt::windowApiOpt)) {
 			// --windowapi[=windowapiname], where
 			//   windowapiname is one of
 			//   1) glfw
@@ -107,22 +107,22 @@ namespace ember {
 			//   3) xlib (x11)
 			//   4) xcb (x11)
 			//   5) wayland
-			const Opt& opt = cmdLineArgs.GetOpt("windowapi");
+			const Opt& opt = cmdLineArgs.GetOpt(cmdopt::windowApiOpt);
 			std::string_view value = opt.GetValue().GetString();
-			if (value == "glfw") {
+			if (value == cmdopt::windowApiGlfwVal) {
 				windowApiType = WindowApiType::EM_GLFW;
 			}
 #ifdef EMBER_PLATFORM_WIN32
-			else if (value == "win32") {
+			else if (value == cmdopt::windowApiWin32Val) {
 				windowApiType = WindowApiType::EM_WIN32;
 			}
 #elif EMBER_PLATFORM_LINUX
-			else if (value == "xlib") {
-				gpuApiType = GpuApiType::VULKAN;
-			} else if (value == "xcb") {
-				gpuApiType = GpuApiType::VULKAN;
-			} else if (value == "wayland") {
-				gpuApiType = GpuApiType::VULKAN;
+			else if (value == cmdopt::windowApiXlibVal) {
+				windowApiType = WindowApiType::EM_XLIB;
+			} else if (value == cmdopt::windowApiXcbVal) {
+				windowApiType = WindowApiType::EM_XCB;
+			} else if (value == cmdopt::windowApiWaylandVal) {
+				windowApiType = WindowApiType::EM_WAYLAND;
 			}
 #else
 #error "Platform is not supported!"
@@ -150,12 +150,12 @@ namespace ember {
 	Dimensions2D ChooseWindowDimensions(const CmdLineArgs& cmdLineArgs) {
 		uint32_t windowWidth{1920};
 		uint32_t windowHeight{1080};
-		if (cmdLineArgs.HasOption("window-width")) {
-			const Opt& opt = cmdLineArgs.GetOpt("window-width");
+		if (cmdLineArgs.HasOption(cmdopt::windowWidthOpt)) {
+			const Opt& opt = cmdLineArgs.GetOpt(cmdopt::windowWidthOpt);
 			windowWidth = static_cast<uint32_t>(opt.GetValue().GetInt());
 		}
-		if (cmdLineArgs.HasOption("window-height")) {
-			const Opt& opt = cmdLineArgs.GetOpt("window-height");
+		if (cmdLineArgs.HasOption(cmdopt::windowHeightOpt)) {
+			const Opt& opt = cmdLineArgs.GetOpt(cmdopt::windowHeightOpt);
 			windowHeight = static_cast<uint32_t>(opt.GetValue().GetInt());
 		}
 		return Dimensions2D{windowWidth, windowHeight};
@@ -163,12 +163,12 @@ namespace ember {
 	Dimensions2D ChooseWindowMinDimensions(const CmdLineArgs& cmdLineArgs) {
 		uint32_t windowMinWidth{320};
 		uint32_t windowMinHeight{240};
-		if (cmdLineArgs.HasOption("window-min-width")) {
-			const Opt& opt = cmdLineArgs.GetOpt("window-min-width");
+		if (cmdLineArgs.HasOption(cmdopt::windowMinWidthOpt)) {
+			const Opt& opt = cmdLineArgs.GetOpt(cmdopt::windowMinWidthOpt);
 			windowMinWidth = static_cast<uint32_t>(opt.GetValue().GetInt());
 		}
-		if (cmdLineArgs.HasOption("window-min-height")) {
-			const Opt& opt = cmdLineArgs.GetOpt("window-min-height");
+		if (cmdLineArgs.HasOption(cmdopt::windowMinHeightOpt)) {
+			const Opt& opt = cmdLineArgs.GetOpt(cmdopt::windowMinHeightOpt);
 			windowMinHeight = static_cast<uint32_t>(opt.GetValue().GetInt());
 		}
 		return Dimensions2D{windowMinWidth, windowMinHeight};
@@ -178,8 +178,8 @@ namespace ember {
 		// --fullscreen=on
 		// --fullscreen=off (default)
 		bool isFullScreen{false};
-		if (cmdLineArgs.HasOption("fullscreen")) {
-			const Opt& opt = cmdLineArgs.GetOpt("fullscreen");
+		if (cmdLineArgs.HasOption(cmdopt::fullscreenOpt)) {
+			const Opt& opt = cmdLineArgs.GetOpt(cmdopt::fullscreenOpt);
 			std::string_view value = opt.GetValue().GetString();
 			if (value == "on") {
 				isFullScreen = true;
@@ -194,8 +194,8 @@ namespace ember {
 		// --visible=on (default)
 		// --visible=off
 		bool isVisible{ true };
-		if (cmdLineArgs.HasOption("visible")) {
-			const Opt& opt = cmdLineArgs.GetOpt("visible");
+		if (cmdLineArgs.HasOption(cmdopt::visibleOpt)) {
+			const Opt& opt = cmdLineArgs.GetOpt(cmdopt::visibleOpt);
 			std::string_view value = opt.GetValue().GetString();
 			if (value == "on") {
 				isVisible = true;
@@ -210,8 +210,8 @@ namespace ember {
 		// --resizable=on (default)
 		// --resizable=off
 		bool isResizable{ true };
-		if (cmdLineArgs.HasOption("resizable")) {
-			const Opt& opt = cmdLineArgs.GetOpt("resizable");
+		if (cmdLineArgs.HasOption(cmdopt::resizableOpt)) {
+			const Opt& opt = cmdLineArgs.GetOpt(cmdopt::resizableOpt);
 			std::string_view value = opt.GetValue().GetString();
 			if (value == "on") {
 				isResizable = true;
