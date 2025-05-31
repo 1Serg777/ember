@@ -84,9 +84,9 @@ namespace ember {
 	struct OptReqs {
 		bool optValUsed{false};
 		ArgType optValType{}; // not used if 'optValUsed' is false.
-		const void* optValAllowedList{nullptr}; // not used if 'optValAllowedListCount' is 0.
-		int optValAllowedListCount{0};
-		ArgType argTypeReq{}; // not used if 'argCount' is 0.
+		const void* allowedValList{nullptr}; // not used if 'allowedValListCount' is 0.
+		int allowedValListCount{0};
+		ArgType argType{}; // not used if 'argCount' is 0.
 		int argCount{0};
 	};
 
@@ -105,15 +105,10 @@ namespace ember {
 		void ParseOptionValue(Opt& opt, const OptReqs& optReq);
 		void ParseArguments(Opt& opt, const OptReqs& optReq);
 
-		void ParseValue(Opt& opt, ArgType argType, ValKind valKind);
+		void ParseValue(Opt& opt, const OptReqs& optReq, ValKind valKind);
 		void SetValue(Opt& opt, std::string_view strArg, ValKind valKind);
 		void SetValue(Opt& opt, int64_t intArg, ValKind valKind);
 		void SetValue(Opt& opt, double floatArg, ValKind valKind);
-
-		bool IsOptionValueAllowed(const Opt& opt, const OptReqs& optReq);
-		bool IsStringOptionValueAllowed(const Opt& opt, const OptReqs& optReq);
-		bool IsIntOptionValueAllowed(const Opt& opt, const OptReqs& optReq);
-		bool IsFloatOptionValueAllowed(const Opt& opt, const OptReqs& optReq);
 
 		void Synchronize();
 

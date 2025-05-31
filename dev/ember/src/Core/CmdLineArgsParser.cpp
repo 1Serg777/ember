@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <stdexcept>
+#include <type_traits>
 #include <unordered_map>
 
 namespace ember {
@@ -114,7 +115,7 @@ namespace ember {
 					PutBack();
 					Number();
 				} else {
-					throw std::runtime_error{ "Unknown sequence of characters starting a token!" };
+					throw std::runtime_error{"Unknown sequence of characters starting a token!"};
 				}
 				break;
 			default:
@@ -206,6 +207,7 @@ namespace ember {
 	}
 	bool CmdLineArgsLexer::Match(char c) {
 		if (Peek() == c) {
+			Advance();
 			return true;
 		}
 		return false;
@@ -256,7 +258,7 @@ namespace ember {
 	}
 
 	void CmdLineArgsParser::CreateArg0Path(char* path) {
-		arg0 = std::filesystem::path{path};
+		cmdLineArgs.SetExePath(std::filesystem::path{path});
 	}
 
 	void CmdLineArgsParser::ParseTokens() {
@@ -298,62 +300,93 @@ namespace ember {
 	}
 	void CmdLineArgsParser::ParseOptionValue(Opt& opt, const OptReqs& optReq) {
 		Consume(TokenType::EQUAL, "The '=' sign is expected before the option value.");
-		ParseValue(opt, optReq.optValType, ValKind::OPTION_VALUE);
-		if (optReq.optValAllowedListCount > 0) {
-			if (!IsOptionValueAllowed(opt, optReq)) {
-				throw std::runtime_error{"Option value is not allowed!"};
-			}
-		}
+		ParseValue(opt, optReq, ValKind::OPTION_VALUE);
 	}
 	void CmdLineArgsParser::ParseArguments(Opt& opt, const OptReqs& optReq) {
 		for (int i = 0; i < optReq.argCount; i++) {
-			ParseValue(opt, optReq.argTypeReq, ValKind::OPTION_ARGUMENT);
+			ParseValue(opt, optReq, ValKind::OPTION_ARGUMENT);
 		}
 	}
-	
-	void CmdLineArgsParser::ParseValue(Opt& opt, ArgType argType, ValKind valKind) {
-		if (argType == ArgType::STRING) {
+
+	template<typename T>
+	bool IsValueAllowed(T value, const Opt& opt, const OptReqs& optReq) {
+		// std::is_integral_v<T> ||
+		// std::is_floating_point_v<T>
+		static_assert(
+			std::is_same_v<T, std::string_view> ||
+			std::is_same_v<T, int64_t> ||
+			std::is_same_v<T, double>,
+			"IsValueAllowed() only supports std::string_view, int64_t, or double"
+			);
+		if (optReq.allowedValListCount == 0)
+			return true;
+		const T* allowedList = static_cast<const T*>(optReq.allowedValList);
+		for (int i = 0; i < optReq.allowedValListCount; i++) {
+			if (value == allowedList[i]) {
+				return true;
+			}
+		}
+		return false;
+	}
+	void CmdLineArgsParser::ParseValue(Opt& opt, const OptReqs& optReq, ValKind valKind) {
+		ArgType valType;
+		if (valKind == ValKind::OPTION_VALUE)
+			valType = optReq.optValType;
+		else if (valKind == ValKind::OPTION_ARGUMENT)
+			valType = optReq.argType;
+		else
+			throw std::runtime_error{"Unexpected value type provided!"};
+
+		if (valType == ArgType::STRING) {
+			std::string_view strVal;
 			if (Match(TokenType::IDENTIFIER)) {
 				const Token* strTok = Previous();
-				SetValue(opt, strTok->lexeme, valKind);
+				strVal = strTok->lexeme;
 			} else if (Match(TokenType::STRING)) {
 				const Token* strTok = Previous();
 				// Remove the double quotes and start after the first one.
-				std::string_view strVal{strTok->lexeme.data() + 1, strTok->lexeme.size() - 2};
-				SetValue(opt, strVal, valKind);
+				strVal = std::string_view{strTok->lexeme.data() + 1, strTok->lexeme.size() - 2};
 			} else {
 				throw std::runtime_error{"String or identifier expected!"};
 			}
-		} else if (argType == ArgType::INTCONST) {
+			if (!IsValueAllowed(strVal, opt, optReq)) {
+				throw std::runtime_error{"String value is not allowed!"};
+			}
+			SetValue(opt, strVal, valKind);
+		} else if (valType == ArgType::INTCONST) {
+			int64_t intVal;
 			if (Match(TokenType::INTCONST)) {
 				const Token* intTok = Previous();
-				int64_t intVal = std::strtol(intTok->lexeme.data(), nullptr, 10);
-				SetValue(opt, intVal, valKind);
-			}
-			else if (Match(TokenType::FLOATCONST)) {
+				intVal = std::strtol(intTok->lexeme.data(), nullptr, 10);
+			} else if (Match(TokenType::FLOATCONST)) {
 				const Token* floatTok = Previous();
 				double floatVal = std::strtod(floatTok->lexeme.data(), nullptr);
-				int64_t intVal = static_cast<int64_t>(floatVal);
+				intVal = static_cast<int64_t>(floatVal);
 				PrintFloatToIntCastWarningMsg(opt, intVal, floatVal);
-				SetValue(opt, intVal, valKind);
 			} else {
 				throw std::runtime_error{"Integer or float (narrowing cast) expected!"};
 			}
-		} else if (argType == ArgType::FLOATCONST) {
+			if (!IsValueAllowed(intVal, opt, optReq)) {
+				throw std::runtime_error{"Integer value is not allowed!"};
+			}
+			SetValue(opt, intVal, valKind);
+		} else if (valType == ArgType::FLOATCONST) {
+			double floatVal;
 			if (Match(TokenType::FLOATCONST)) {
 				const Token* floatTok = Previous();
-				double floatVal = std::strtod(floatTok->lexeme.data(), nullptr);
-				SetValue(opt, floatVal, valKind);
-			}
-			else if (Match(TokenType::INTCONST)) {
+				floatVal = std::strtod(floatTok->lexeme.data(), nullptr);
+			} else if (Match(TokenType::INTCONST)) {
 				const Token* intTok = Previous();
 				int64_t intVal = std::strtol(intTok->lexeme.data(), nullptr, 10);
-				double floatVal = static_cast<double>(intVal);
+				floatVal = static_cast<double>(intVal);
 				PrintIntToFloatCastWarningMsg(opt, floatVal, intVal);
-				SetValue(opt, floatVal, valKind);
 			} else {
 				throw std::runtime_error{"Float or integer (narrowing cast) expected!"};
 			}
+			if (!IsValueAllowed(floatVal, opt, optReq)) {
+				throw std::runtime_error{"Float value is not allowed!"};
+			}
+			SetValue(opt, floatVal, valKind);
 		}
 	}
 	void CmdLineArgsParser::SetValue(Opt& opt, std::string_view strVal, ValKind valKind) {
@@ -373,47 +406,6 @@ namespace ember {
 			opt.SetValue(floatVal);
 		else if (valKind == ValKind::OPTION_ARGUMENT)
 			opt.AddArg(floatVal);
-	}
-
-	bool CmdLineArgsParser::IsOptionValueAllowed(const Opt& opt, const OptReqs& optReq) {
-		const Arg& optVal = opt.GetValue();
-		if (optVal.IsString()) {
-			return IsStringOptionValueAllowed(opt, optReq);
-		} else if (optVal.IsInt()) {
-			return IsIntOptionValueAllowed(opt, optReq);
-		} else if (optVal.IsFloat()) {
-			return IsFloatOptionValueAllowed(opt, optReq);
-		} else {
-			assert(false && "Unknown option value types!");
-			return false;
-		}
-	}
-	bool CmdLineArgsParser::IsStringOptionValueAllowed(const Opt& opt, const OptReqs& optReq) {
-		const std::string_view* allowedList = static_cast<const std::string_view*>(optReq.optValAllowedList);
-		for (int i = 0; i < optReq.optValAllowedListCount; i++) {
-			if (opt.GetValue().GetString() == allowedList[i]) {
-				return true;
-			}
-		}
-		return false;
-	}
-	bool CmdLineArgsParser::IsIntOptionValueAllowed(const Opt& opt, const OptReqs& optReq) {
-		const int64_t* allowedList = static_cast<const int64_t*>(optReq.optValAllowedList);
-		for (int i = 0; i < optReq.optValAllowedListCount; i++) {
-			if (opt.GetValue().GetInt() == allowedList[i]) {
-				return true;
-			}
-		}
-		return false;
-	}
-	bool CmdLineArgsParser::IsFloatOptionValueAllowed(const Opt& opt, const OptReqs& optReq) {
-		const double* allowedList = static_cast<const double*>(optReq.optValAllowedList);
-		for (int i = 0; i < optReq.optValAllowedListCount; i++) {
-			if (opt.GetValue().GetFloat() == allowedList[i]) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	void CmdLineArgsParser::Synchronize() {

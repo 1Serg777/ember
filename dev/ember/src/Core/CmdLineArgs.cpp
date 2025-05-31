@@ -97,6 +97,10 @@ namespace ember {
 		}
 		return true;
 	}
+	bool CmdLineArgs::HasOptions() const {
+		return !opts.empty();
+	}
+
 	Opt& CmdLineArgs::GetOpt(std::string_view optName) {
 		auto searchRes = opts.find(optName);
 		assert(searchRes != opts.end() && "You must check the existence of the option first!");
@@ -108,8 +112,11 @@ namespace ember {
 		return searchRes->second;
 	}
 
-	bool CmdLineArgs::HasOptions() const {
-		return !opts.empty();
+	void CmdLineArgs::SetExePath(const std::filesystem::path& exePath) {
+		this->exePath = exePath;
+	}
+	const std::filesystem::path& CmdLineArgs::GetExePath() const {
+		return exePath;
 	}
 
 }

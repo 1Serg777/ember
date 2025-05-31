@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <string_view>
 #include <variant>
@@ -127,13 +128,17 @@ namespace ember {
 	public:
 		void AddOpt(const Opt& opt);
 		bool HasOption(std::string_view optName) const;
+		bool HasOptions() const;
+
 		Opt& GetOpt(std::string_view optName);
 		const Opt& GetOpt(std::string_view optName) const;
 
-		bool HasOptions() const;
+		void SetExePath(const std::filesystem::path& exePath);
+		const std::filesystem::path& GetExePath() const;
 
 	private:
 		std::unordered_map<std::string_view, Opt> opts;
+		std::filesystem::path exePath;
 	};
 
 }
