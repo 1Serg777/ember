@@ -132,12 +132,14 @@ namespace ember {
 			return nullptr;
 		}
 #elif EMBER_PLATFORM_LINUX
-		else if (windowType == WindowApiType::EM_WAYLAND) {
-			assert(false && "[OGL Context] Wayland Window API is not supported yet!");
+		else if (windowType == WindowApiType::EM_XLIB) {
+			assert(false && "[OGL Context] XLIB Window API is not supported yet!");
 			return nullptr;
-		}
-		else if (windowType == WindowApiType::EM_X11) {
-			assert(false && "[OGL Context] X11 Window API is not supported yet!");
+		} else if (windowType == WindowApiType::EM_XCB) {
+			assert(false && "[OGL Context] XCB Window API is not supported yet!");
+			return nullptr;
+		} else if (windowType == WindowApiType::EM_WAYLAND) {
+			assert(false && "[OGL Context] Wayland Window API is not supported yet!");
 			return nullptr;
 		}
 #endif

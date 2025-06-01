@@ -316,10 +316,12 @@ namespace ember {
 			requestedExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 		}
 #elif EMBER_PLATFORM_LINUX
-		else if (windowApiType == WindowApiType::EM_WAYLAND) {
+		else if (windowApiType == WindowApiType::EM_XLIB) {
+			assert(false && "[Vulkan (X11)] XLib Window API is not supported yet!");
+		} else if (windowApiType == WindowApiType::EM_XCB) {
+			assert(false && "[Vulkan (X11)] XCB Window API is not supported yet!");
+		} else if (windowApiType == WindowApiType::EM_WAYLAND) {
 			assert(false && "[Vulkan (Wayland)] Wayland Window API is not supported yet!");
-		} else if (windowApiType == WindowApiType::EM_X11) {
-			assert(false && "[Vulkan (X11)] X11 Window API is not supported yet!");
 		}
 #endif
 		else {
@@ -557,11 +559,12 @@ namespace ember {
 			CreateVulkanWindowWin32Surface();
 		}
 #elif EMBER_PLATFORM_LINUX
-		else if (window->GetWindowType() == WindowApiType::EM_WAYLAND) {
+		else if (window->GetWindowType() == WindowApiType::EM_XLIB) {
+			CreateVulkanXLibSurface();
+		} else if (window->GetWindowType() == WindowApiType::EM_XCB) {
+			CreateVulkanXCBSurface();
+		} else if (window->GetWindowType() == WindowApiType::EM_WAYLAND) {
 			CreateVulkanWaylandSurface();
-		}
-		else if (window->GetWindowType() == WindowApiType::EM_X11) {
-			CreateVulkanX11Surface();
 		}
 #endif
 		else {
@@ -586,10 +589,13 @@ namespace ember {
 		// TODO
 	}
 #elif EMBER_PLATFORM_LINUX
-	void GpuApiCtxVk::CreateVulkanWaylandSurface() {
+	void GpuApiCtxVk::CreateVulkanXLibSurface() {
 		// TODO
 	}
-	void GpuApiCtxVk::CreateVulkanX11Surface() {
+	void GpuApiCtxVk::CreateVulkanXCBSurface() {
+		// TODO
+	}
+	void GpuApiCtxVk::CreateVulkanWaylandSurface() {
 		// TODO
 	}
 #endif
