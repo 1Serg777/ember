@@ -204,8 +204,9 @@ namespace ember {
 #ifdef EMBER_PLATFORM_WIN32
 		void CreateVulkanWindowWin32Surface();
 #elif EMBER_PLATFORM_LINUX
+		void CreateVulkanXLibSurface();
+		void CreateVulkanXCBSurface();
 		void CreateVulkanWaylandSurface();
-		void CreateVulkanX11Surface();
 #endif
 
 		void PickVulkanPhysicalDevice();

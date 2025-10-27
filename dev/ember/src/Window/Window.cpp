@@ -27,15 +27,20 @@ namespace ember {
 			// 1. GLFW API
 			WindowGlfw* window = new WindowGlfw(windowSettings);
 			return window;
+		} else if (windowSettings.type == WindowApiType::EM_XLIB) {
+			// 2. X11 API (XLib)
+			// TODO: implementation
+			assert(false && "[Window] (X11) XLib Window API is not supported yet!");
+			return nullptr;
+		} else if (windowSettings.type == WindowApiType::EM_XCB) {
+			// 3. X11 API (XCB)
+			// TODO: implementation
+			assert(false && "[Window] (X11) XCB Window API is not supported yet!");
+			return nullptr;
 		} else if (windowSettings.type == WindowApiType::EM_WAYLAND) {
-			// 2. Wayland API
+			// 4. Wayland API
 			// TODO: implementation
 			assert(false && "[Window] Wayland Window API is not supported yet!");
-			return nullptr;
-		} else if (windowSettings.type == WindowApiType::EM_X11) {
-			// 3. X11 API
-			// TODO: implementation
-			assert(false && "[Window] X11 Window API is not supported yet!");
 			return nullptr;
 		} else {
 			assert(false && "[Window] Unsupported Window API!");
