@@ -9,7 +9,8 @@ project("ember-lvl-editor")
     includedirs {
         -- "%{include_dirs.glad}", -- Uncomment if you ever need to work with
         -- "%{include_dirs.glfw}", -- these directly in the project.
-        "%{include_dirs.glm}",
+        -- "%{include_dirs.glm}",
+        "%{include_dirs.numa}",
         "%{include_dirs.ember}",
         "%{include_dirs.ember_lvl_editor}",
     }
@@ -19,6 +20,7 @@ project("ember-lvl-editor")
    
     links {
         "ember", -- Putting ember to the bottom causes linking errors!
+        "numa",
         "glad", -- On Windows it's enough
         "glfw", -- to only link to 'ember'
         "imgui",

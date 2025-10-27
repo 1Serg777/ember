@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glm.hpp>
+#include <Vec.hpp>
 
 #include <array>
 #include <cstdint>
@@ -8,38 +8,39 @@
 
 namespace ember {
 
-	enum class VertexAttribType {
-		POSITION = 1,
-		NORMAL = 2,
-		TANGENT = 4,
-		COLOR = 8,
-		UV = 16,
+	enum class VertexAttribChannel {
+		UNDEFINED = -1,
+		POSITION  =  0,
+		NORMAL    =  1,
+		TANGENT   =  2,
+		COLOR     =  3,
+		UV0       =  4,
+		UV1       =  5,
+		COUNT
 	};
 
 	enum class VertexAttribFormat {
-		FLOAT32,
-
-		UINT32,
-		UINT16,
-		UINT8,
-
 		INT32,
 		INT16,
 		INT8,
+		UINT32,
+		UINT16,
+		UINT8,
+		FLOAT32,
 	};
 
-	uint32_t GetVertexAttributeFormatSizeInBytes(VertexAttribFormat vertexAttribFormat);
+	uint32_t GetVertexAttribFormatSizeInBytes(VertexAttribFormat vertexAttribFormat);
 
-	bool IsVertexAttribFormatFloat(VertexAttribFormat vertexAttribFormat);
-	bool IsVertexAttribFormatUint(VertexAttribFormat vertexAttribFormat);
 	bool IsVertexAttribFormatInt(VertexAttribFormat vertexAttribFormat);
+	bool IsVertexAttribFormatUint(VertexAttribFormat vertexAttribFormat);
+	bool IsVertexAttribFormatFloat(VertexAttribFormat vertexAttribFormat);
 
 	struct VertexAttribDescriptor {
-		uint32_t GetVertexAttributeSize() const;
+		uint32_t GetVertexAttribSize() const;
 
-		uint32_t dimension{0}; // Attribute's dimensionality. 3 if vec3, 2 if vec2 and so on.
-		uint32_t offset{0}; // Attribute's offset within the vertex.
-		VertexAttribType type{};
+		uint32_t dimension{0};
+		uint32_t offset{0};
+		VertexAttribChannel channel{};
 		VertexAttribFormat format{};
 	};
 
@@ -54,72 +55,72 @@ namespace ember {
 
 	// P - position.
 	struct VertexP {
-		glm::vec3 vertexPosition;
-		static constexpr uint32_t stride = sizeof(glm::vec3);
+		numa::Vec3 vertexPosition;
+		static constexpr uint32_t stride = sizeof(numa::Vec3);
 		static const std::vector<VertexAttribDescriptor> attributes;
 	};
 	// P - position, N - normal.
 	struct VertexPN {
-		glm::vec3 vertexPosition;
-		glm::vec3 vertexNormal;
-		static constexpr uint32_t stride = 2 * sizeof(glm::vec3);
+		numa::Vec3 vertexPosition;
+		numa::Vec3 vertexNormal;
+		static constexpr uint32_t stride = 2 * sizeof(numa::Vec3);
 		static const std::vector<VertexAttribDescriptor> attributes;
 	};
 	// P - position, C - color.
 	struct VertexPC {
-		glm::vec3 vertexPosition;
-		glm::vec3 vertexColor;
-		static constexpr uint32_t stride = 2 * sizeof(glm::vec3);
+		numa::Vec3 vertexPosition;
+		numa::Vec3 vertexColor;
+		static constexpr uint32_t stride = 2 * sizeof(numa::Vec3);
 		static const std::vector<VertexAttribDescriptor> attributes;
 	};
 	// P - position, U - uv texture coordinates.
 	struct VertexPU {
-		glm::vec3 vertexPosition;
-		glm::vec2 vertexUv;
-		static constexpr uint32_t stride = sizeof(glm::vec3) + sizeof(glm::vec2);
+		numa::Vec3 vertexPosition;
+		numa::Vec2 vertexUv;
+		static constexpr uint32_t stride = sizeof(numa::Vec3) + sizeof(numa::Vec2);
 		static const std::vector<VertexAttribDescriptor> attributes;
 	};
 	// P - position, N - normal, T - tangent.
 	struct VertexPNT {
-		glm::vec3 vertexPosition;
-		glm::vec3 vertexNormal;
-		glm::vec3 vertexTangent;
-		static constexpr uint32_t stride = 3 * sizeof(glm::vec3);
+		numa::Vec3 vertexPosition;
+		numa::Vec3 vertexNormal;
+		numa::Vec3 vertexTangent;
+		static constexpr uint32_t stride = 3 * sizeof(numa::Vec3);
 		static const std::vector<VertexAttribDescriptor> attributes;
 	};
 	// P - position, N - normal, C - color.
 	struct VertexPNC {
-		glm::vec3 vertexPosition;
-		glm::vec3 vertexNormal;
-		glm::vec3 vertexColor;
-		static constexpr uint32_t stride = 3 * sizeof(glm::vec3);
+		numa::Vec3 vertexPosition;
+		numa::Vec3 vertexNormal;
+		numa::Vec3 vertexColor;
+		static constexpr uint32_t stride = 3 * sizeof(numa::Vec3);
 		static const std::vector<VertexAttribDescriptor> attributes;
 	};
 	// P - position, N - normal, U - uv
 	struct VertexPNU {
-		glm::vec3 vertexPosition;
-		glm::vec3 vertexNormal;
-		glm::vec2 vertexUv;
-		static constexpr uint32_t stride = 2 * sizeof(glm::vec3) + sizeof(glm::vec2);
+		numa::Vec3 vertexPosition;
+		numa::Vec3 vertexNormal;
+		numa::Vec2 vertexUv;
+		static constexpr uint32_t stride = 2 * sizeof(numa::Vec3) + sizeof(numa::Vec2);
 		static const std::vector<VertexAttribDescriptor> attributes;
 	};
 	// P - position, N - normal, T - tangent, U - uv
 	struct VertexPNTU {
-		glm::vec3 vertexPosition;
-		glm::vec3 vertexNormal;
-		glm::vec3 vertexTangent;
-		glm::vec2 vertexUv;
-		static constexpr uint32_t stride = 3 * sizeof(glm::vec3) + sizeof(glm::vec2);
+		numa::Vec3 vertexPosition;
+		numa::Vec3 vertexNormal;
+		numa::Vec3 vertexTangent;
+		numa::Vec2 vertexUv;
+		static constexpr uint32_t stride = 3 * sizeof(numa::Vec3) + sizeof(numa::Vec2);
 		static const std::vector<VertexAttribDescriptor> attributes;
 	};
 	// P - position, N - normal, T - tangent, C - color, U - uv
 	struct VertexPNTCU {
-		glm::vec3 vertexPosition;
-		glm::vec3 vertexNormal;
-		glm::vec3 vertexTangent;
-		glm::vec3 vertexColor;
-		glm::vec2 vertexUv;
-		static constexpr uint32_t stride = 4 * sizeof(glm::vec3) + sizeof(glm::vec2);
+		numa::Vec3 vertexPosition;
+		numa::Vec3 vertexNormal;
+		numa::Vec3 vertexTangent;
+		numa::Vec3 vertexColor;
+		numa::Vec2 vertexUv;
+		static constexpr uint32_t stride = 4 * sizeof(numa::Vec3) + sizeof(numa::Vec2);
 		static const std::vector<VertexAttribDescriptor> attributes;
 	};
 

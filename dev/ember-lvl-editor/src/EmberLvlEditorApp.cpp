@@ -40,7 +40,6 @@ namespace ember {
 			while (appIsRunning) {
 				window->Update();
 				eventRegistry->Update();
-
 				if (!window->IsMinimized()) {
 					gpuApiCtx->OnFrameBegin();
 					gpuApiCtx->DrawFrame();

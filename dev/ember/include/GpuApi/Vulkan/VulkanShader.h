@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GpuApi/Shader.h"
+#include "Framework/Asset/Shader.h"
 
 #include <vulkan/vulkan.h>
 

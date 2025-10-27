@@ -7,3 +7,6 @@
 [submodule "dependencies/external/imgui"]
 	path = dependencies/external/imgui
 	url = https://github.com/1Serg777/imgui.git
+[submodule "dependencies/internal/numa"]
+	path = dependencies/internal/numa
+	url = https://github.com/1Serg777/numa.git

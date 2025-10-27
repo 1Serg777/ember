@@ -10,6 +10,7 @@ workspace("ember")
 include("dependencies/external/glad")
 include("dependencies/external/glfw")
 include("dependencies/external/imgui")
+include("dependencies/internal/numa/premake5_numa_ember.lua")
 include("dev/ember")
 include("dev/ember-lvl-editor")
 

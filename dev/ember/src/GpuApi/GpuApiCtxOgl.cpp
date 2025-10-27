@@ -109,6 +109,13 @@ namespace ember {
 		// TODO
 	}
 
+	void GlfwOglCtx::CreateMeshGpuResource(Mesh* mesh) {
+		// TODO
+	}
+	void GlfwOglCtx::UploadMeshGpuResource(Mesh* mesh) {
+		// TODO
+	}
+
 	void GlfwOglCtx::OnMakeCurrent() {
 		window->MakeContextCurrent();
 		if (!openglFunctionsLoaded) {

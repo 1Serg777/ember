@@ -1,7 +1,7 @@
 #pragma once
 
-namespace ember
-{
+namespace ember {
+
 #ifdef EMBER_PLATFORM_WIN32
 
 	#define EMBER_FILE __FILE__
@@ -54,4 +54,5 @@ namespace ember
 #define STRUCT_NO_COPY(struct_name) CLASS_NO_COPY(struct_name)
 
 #define STRUCT_NO_MOVE(struct_name) CLASS_NO_MOVE(struct_name)
+
 }

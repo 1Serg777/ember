@@ -18,12 +18,12 @@ include_dirs = {}
 -- external dependencies include directories
 include_dirs["glad"]  = external_dependencies_path .. "/glad/include"
 include_dirs["glfw"]  = external_dependencies_path .. "/glfw/include"
-include_dirs["glm"]   = external_dependencies_path .. "/glm/glm"
+-- include_dirs["glm"]   = external_dependencies_path .. "/glm/glm"
 include_dirs["imgui"] = external_dependencies_path .. "/imgui"
 -- include_dirs["vulkan_win32"] = "C:\\VulkanSDK\\1.4.313.0\\Include"
 include_dirs["vulkan_win32"] = _OPTIONS["vulkan_sdk_path"] .. "/Include"
 -- internal dependencies include directories
--- TODO
+include_dirs["numa"] = internal_dependencies_path .. "/numa/dev/numa/include"
 
 -- dev projects include directories
 include_dirs["ember"]            = dev_path .. "/ember/include"
@@ -40,7 +40,7 @@ src_dirs["glfw"]  = external_dependencies_path .. "/glfw/src"
 src_dirs["imgui"] = external_dependencies_path .. "/imgui"
 
 -- internal dependencies source code directories
--- TODO
+src_dirs["numa"] = internal_dependencies_path .. "/numa/dev/numa/src"
 
 -- dev projects source code directories
 src_dirs["ember"] = dev_path .. "/ember/src"

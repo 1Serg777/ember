@@ -9,7 +9,8 @@ project("ember")
     includedirs {
         "%{include_dirs.glad}",
         "%{include_dirs.glfw}",
-        "%{include_dirs.glm}",
+        -- "%{include_dirs.glm}",
+        "%{include_dirs.numa}",
         "%{include_dirs.imgui}",
         "%{include_dirs.ember}",
     }
@@ -21,6 +22,7 @@ project("ember")
         "glad",
         "glfw",
         "imgui",
+        "numa",
     }
 
     files {

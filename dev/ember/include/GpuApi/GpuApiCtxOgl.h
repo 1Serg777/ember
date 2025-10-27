@@ -24,7 +24,6 @@ namespace ember {
 	public:
 		GpuApiCtxOgl(const SettingsOgl& settings);
 		virtual ~GpuApiCtxOgl() = default;
-
 		CLASS_NO_COPY(GpuApiCtxOgl);
 		CLASS_NO_MOVE(GpuApiCtxOgl);
 
@@ -57,6 +56,11 @@ namespace ember {
 		void Present() override;
 
 		void OnFramebufferResize() override;
+
+		// GPU Resources
+
+		void CreateMeshGpuResource(Mesh* mesh) override;
+		void UploadMeshGpuResource(Mesh* mesh) override;
 
 	private:
 		WindowGlfw* window{nullptr};

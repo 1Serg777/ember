@@ -12,6 +12,7 @@
 #endif
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -265,6 +266,13 @@ namespace ember {
 		Synchronize();
 		if (!window->IsMinimized())
 			ResizeSwapchain();
+	}
+
+	void GpuApiCtxVk::CreateMeshGpuResource(Mesh* mesh) {
+		// TODO
+	}
+	void GpuApiCtxVk::UploadMeshGpuResource(Mesh* mesh) {
+		// TODO
 	}
 
 	const SettingsVk& GpuApiCtxVk::GetSettingsVk() const {

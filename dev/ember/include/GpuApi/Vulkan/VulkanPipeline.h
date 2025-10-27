@@ -1,6 +1,7 @@
 #pragma once
 
-#include "GpuApi/Vertex.h"
+#include "Framework/Asset/Vertex.h"
+
 #include "GpuApi/Vulkan/VulkanRenderPass.h"
 #include "GpuApi/Vulkan/VulkanPipelineLayout.h"
 #include "GpuApi/Vulkan/VulkanShader.h"

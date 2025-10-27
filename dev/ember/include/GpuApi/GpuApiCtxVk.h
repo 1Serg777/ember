@@ -131,7 +131,6 @@ namespace ember {
 	public:
 		GpuApiCtxVk(const SettingsVk& settings, Window* window);
 		virtual ~GpuApiCtxVk() = default;
-
 		CLASS_NO_COPY(GpuApiCtxVk);
 		CLASS_NO_MOVE(GpuApiCtxVk);
 
@@ -151,6 +150,11 @@ namespace ember {
 		void Present() override;
 
 		void OnFramebufferResize() override;
+
+		// GPU Resources
+
+		void CreateMeshGpuResource(Mesh* mesh) override;
+		void UploadMeshGpuResource(Mesh* mesh) override;
 
 		const SettingsVk& GetSettingsVk() const;
 

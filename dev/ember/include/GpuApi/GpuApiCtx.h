@@ -3,6 +3,8 @@
 #include "Core/CmdLineArgs.h"
 #include "Window/Window.h"
 
+#include "Framework/Asset/Mesh.h"
+
 #include <cstdint>
 
 namespace ember {
@@ -16,6 +18,8 @@ namespace ember {
 	class GpuApiCtx {
 	public:
 		virtual ~GpuApiCtx() = default;
+
+		virtual GpuApiType GetGpuApiType() const = 0;
 
 		virtual void Initialize() = 0;
 		virtual void InitializeGuiContext() = 0;
@@ -32,7 +36,10 @@ namespace ember {
 
 		virtual void OnFramebufferResize() = 0;
 
-		virtual GpuApiType GetGpuApiType() const = 0;
+		// GPU Resources
+
+		virtual void CreateMeshGpuResource(Mesh* mesh) = 0;
+		virtual void UploadMeshGpuResource(Mesh* mesh) = 0;
 	};
 
 	GpuApiType ChooseGpuApi(const CmdLineArgs& cmdLineArgs);
@@ -42,5 +49,10 @@ namespace ember {
 
 	void SetCurrentGpuApiCtx(GpuApiCtx* gpuApiCtx);
 	GpuApiCtx* GetCurrentGpuApiCtx();
+
+	// GPU Resources
+
+	void CreateMeshGpuResource(Mesh* mesh);
+	void UploadMeshGpuResource(Mesh* mesh);
 
 }
