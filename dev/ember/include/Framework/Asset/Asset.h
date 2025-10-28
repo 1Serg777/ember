@@ -3,7 +3,7 @@
 namespace ember {
 
 	class Asset {
-
+		// TODO
 	};
 
 }
