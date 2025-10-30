@@ -109,6 +109,9 @@ namespace ember {
 		void ReportOutOfBoundIndices(const std::vector<uint32_t>& outOfBoundIndices);
 		void ReportIncompleteIndices(const std::vector<uint32_t>& incompleteIndices);
 
+		void ComputeObjectAABB();
+		void ApplyLocalAABBPadding(numa::Vec3& min, numa::Vec3& max) const;
+
 		std::unordered_map<VertexAttribChannel, VertexAttribDescriptor> vertAttribLayout;
 
 		CallbackStorage<uint32_t, std::function<void()>> meshChangedCallbackStorage;
@@ -122,6 +125,9 @@ namespace ember {
 		std::vector<numa::Vec2> uvs;
 
 		std::vector<uint32_t> indices;
+
+		AABB objectAABB{};
+		numa::Vec3 aabbPadding{0.0f};
 
 		IndexFormat indexFormat{IndexFormat::UINT32};
 		MeshTopology meshTopology{MeshTopology::TRIANGLES};

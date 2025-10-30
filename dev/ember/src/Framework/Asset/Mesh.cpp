@@ -34,7 +34,7 @@ namespace ember {
 		ResizeVertexAttribArrays();
 		size_t minCount = std::min(this->positions.size(), positions.size());
 		std::copy_n(positions.begin(), minCount, this->positions.begin());
-		ComputeLocalAABB();
+		ComputeObjectAABB();
 		OnVertexDataUpdated();
 	}
 
@@ -138,7 +138,7 @@ namespace ember {
 		}
 		ResizeVertexAttribArrays();
 		SetInternalVertexAttribArrayData(src, vertexCount, meshLayout);
-		ComputeLocalAABB();
+		ComputeObjectAABB();
 		// Send this to the GPU
 		SendGpuMeshVertexBufferData(src);
 		SendMeshChangedEventNotifications();
@@ -454,6 +454,26 @@ namespace ember {
 	void Mesh::ReportIncompleteIndices(const std::vector<uint32_t>& incompleteIndices) {
 		// assert(incompleteIndices.size() == 0 && "Incomplete indices detected!");
 		// Logger::Info("Incomplete indices detected!");
+	}
+
+	void Mesh::ComputeObjectAABB() {
+		// Stackoverflow: https://gamedev.stackexchange.com/a/162824/160940
+		// glm::vec3 min = glm::vec3{ 1.0f, 1.0f, 1.0f } * std::numeric_limits<float>().max();
+		// glm::vec3 max = glm::vec3{ 1.0f, 1.0f, 1.0f } * std::numeric_limits<float>().min();
+
+		numa::Vec3 min = numa::Vec3{std::numeric_limits<float>().infinity()};
+		numa::Vec3 max = numa::Vec3{-std::numeric_limits<float>().infinity()};
+		for (uint32_t vert = 0; vert < positions.size(); vert++) {
+			min = numa::Min(positions[vert], min);
+			max = numa::Max(positions[vert], max);
+		}
+		// Apply padding
+		ApplyLocalAABBPadding(min, max);
+		this->objectAABB.InitializeFromMinMax(min, max);
+	}
+	void Mesh::ApplyLocalAABBPadding(numa::Vec3& min, numa::Vec3& max) const {
+		min -= aabbPadding;
+		max += aabbPadding;
 	}
 
 }

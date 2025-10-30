@@ -1,0 +1,7 @@
+namespace ember {
+
+	class VulkanMemoryAllocator {
+
+	};
+
+}
