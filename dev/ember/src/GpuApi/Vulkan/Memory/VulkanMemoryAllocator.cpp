@@ -1,5 +1,6 @@
 #include "GpuApi/Vulkan/Memory/VulkanMemoryAllocator.h"
 
+#include <algorithm>
 #include <cassert>
 #include <stdexcept>
 
@@ -43,14 +44,32 @@ namespace ember {
 			// Is throwing a runtime exception really the best possible approach?
 			throw std::runtime_error{"Allocation failed: there is not enough memory!"};
 		}
-		iter = ClaimMemoryBlock(iter, size, alignment);
-		return iter->GetPayloadOffset();
+		std::list<VulkanMemoryBlock>::iterator newBlockIter = ClaimMemoryBlock(iter, size, alignment);
+		return newBlockIter->GetPayloadOffset();
 	}
 	void VulkanMemoryAllocator::Free(VulkanMemoryMarker marker) {
-		// TODO
+		// Free the memory block, potentially joining it with the nearby ones.
+		std::list<VulkanMemoryBlock>::iterator memoryBlockIter = FindBlock(marker);
+		memoryBlockIter->free = true;
+
+		// First we look if we can join it with the ones to the left.
+		std::list<VulkanMemoryBlock>::iterator leftmostFreeBlock = FindFirstFreeBlockRangeLeft(memoryBlockIter);
+		// Before we delete the range of free memory blocks to the left, we must capture all the information
+		// that will be required to update the marker block.
+		size_t newSize = (memoryBlockIter->offset - leftmostFreeBlock->offset) + memoryBlockIter->size;
+		memoryBlockIter->size = newSize;
+		memoryBlockIter->offset = leftmostFreeBlock->offset;
+		memoryBlockIter->padding = 0;
+		memoryBlocks.erase(leftmostFreeBlock, memoryBlockIter);
+
+		// And then we try to see if it can be joined with the blocks to the right.
+		std::list<VulkanMemoryBlock>::iterator rightmostFreeBlock = FindFirstFreeBlockRangeRight(memoryBlockIter);
+		newSize = (rightmostFreeBlock->offset - memoryBlockIter->offset) + rightmostFreeBlock->size;
+		memoryBlockIter->size = newSize;
+		memoryBlocks.erase(++memoryBlockIter, rightmostFreeBlock); // can potentially be [end, end), is that ok?
 	}
 	VulkanMemoryMarker VulkanMemoryAllocator::Realloc(VulkanMemoryMarker marker, size_t newSize, uint32_t alignment) {
-		// TODO
+		assert(false && "Not implemented!");
 		return VulkanMemoryMarker();
 	}
 
@@ -108,23 +127,93 @@ namespace ember {
 		                                                                           size_t size, uint32_t alignment) {
 		// Found the first appropriate block.
 		// Now we need to break it up into two parts and alter the list to reflect the changes.
-		uint32_t startBlockPadding = CalculatePadding(block.offset, alignment);
-		VulkanMemoryBlock startBlock{};
-		startBlock.size = size + startBlockPadding;
-		startBlock.offset = block.offset;
-		startBlock.padding = startBlockPadding;
-		startBlock.free = false;
+		// The first part will be a new block of the requested size and alignment, whereas the second part
+		// will have what's left of the old block.
+		// Remember, a new element in a list is inserted before the iterator provided in the argument.
+		// What this means is that the old block will become the second part block, and the new one
+		// inserted into the list is going to be the first part block.
 
-		VulkanMemoryBlock endBlock{};
-		endBlock.size = block.size - startBlock.size;
-		endBlock.offset = startBlock.offset + startBlock.size;
-		endBlock.padding = 0;
-		endBlock.free = true;
+		uint32_t firstBlockPadding = CalculatePadding(iter->offset, alignment);
+		VulkanMemoryBlock firstPartBlock{};
+		firstPartBlock.size = size + firstBlockPadding;
+		firstPartBlock.offset = iter->offset;
+		firstPartBlock.padding = firstBlockPadding;
+		firstPartBlock.free = false;
 
-		// Remember, the new element is inserted before the iterator provided in the argument.
-		// TODO
+		VulkanMemoryBlock secondPartBlock{};
+		secondPartBlock.size = iter->size - firstPartBlock.size;
+		secondPartBlock.offset = firstPartBlock.offset + firstPartBlock.size;
+		secondPartBlock.padding = 0;
+		secondPartBlock.free = true;
 
-		return std::list<VulkanMemoryBlock>::iterator();
+		// As an optimization we could also check how big the second part block is going to end up to be.
+		// If it's smaller than some threshold, such as smaller than the alignment requested, we could simply
+		// add the size of the second block to the size of the first one and avoid breaking the old block into parts at all.
+		// Just alter the old block according to the requested parameters and that's it.
+
+		std::list<VulkanMemoryBlock>::iterator newBlockIter = memoryBlocks.insert(iter, firstPartBlock);
+		// "No iterators or references are invalidated."
+		// https://en.cppreference.com/w/cpp/container/list/insert.html
+		*iter = secondPartBlock;
+
+		return newBlockIter;
+	}
+
+	std::list<VulkanMemoryBlock>::iterator VulkanMemoryAllocator::FindBlock(VulkanMemoryMarker marker) {
+		auto pred = [marker](const VulkanMemoryBlock& memoryBlock) {
+			return marker == memoryBlock.GetPayloadOffset();
+		};
+		std::list<VulkanMemoryBlock>::iterator searchRes = std::find_if(memoryBlocks.begin(), memoryBlocks.end(), pred);
+		if (searchRes == memoryBlocks.end()) {
+			// TODO: think about different error reporting strategies.
+			// Is throwing a runtime exception really the best possible approach?
+			throw std::runtime_error{"Failed to find the memory block! Is the marker provided correct?"};
+		}
+		return searchRes;
+	}
+	std::list<VulkanMemoryBlock>::iterator VulkanMemoryAllocator::FindFirstFreeBlockRangeLeft(std::list<VulkanMemoryBlock>::iterator iter) {
+		// The assumption is that the iterator provided in the argument refers to a free memory block.
+		assert(iter->free && "The memory block referred to by the iterator provided in the argument must exist and be free!");
+		// We're basically searching for the first free block in a chain of free blocks leading to the one given.
+		// The search goes to the left.
+		for (; iter != memoryBlocks.begin(); iter--) {
+			if (!iter->free) {
+				// Go back to the one that was 'free'.
+				iter++;
+				break;
+			}
+		}
+		// Handle the edge case when we've reached the very first element of the list.
+		// Notice that because of the loop condition, the first list element wasn't checked.
+		// Also, if we're at 'memoryBlocks.begin()' then this means that all of the other memory blocks,
+		// up to the one referenced by the argument iterator, are 'free'.
+		if (iter == memoryBlocks.begin()) {
+			if (iter->free) {
+				return memoryBlocks.begin();
+			} else {
+				iter++;
+			}
+		}
+		return iter;
+	}
+	std::list<VulkanMemoryBlock>::iterator VulkanMemoryAllocator::FindFirstFreeBlockRangeRight(std::list<VulkanMemoryBlock>::iterator iter) {
+		// The assumption is that the iterator provided in the argument refers to a free memory block.
+		assert(iter != memoryBlocks.end() && "The algorithm doesn't accept the end iterator!");
+		assert(iter->free && "The memory block referred to by the iterator provided in the argument must exist and be free!");
+		// We're basically searching for the first free block in a chain of free blocks leading to the one given.
+		// The search goes to the right.
+		for (; iter != memoryBlocks.end(); iter++) {
+			if (!iter->free) {
+				// Go back to the one that was 'free'.
+				iter--;
+				break;
+			}
+		}
+		// Handle the edge case when we've reached the end iterator.
+		if (iter == memoryBlocks.end()) {
+			iter--;
+		}
+		return iter;
 	}
 
 	size_t AlignOffset(size_t offset, uint32_t alignment) {

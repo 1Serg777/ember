@@ -39,6 +39,10 @@ namespace ember {
 		std::list<VulkanMemoryBlock>::iterator ClaimMemoryBlock(std::list<VulkanMemoryBlock>::iterator iter,
 			                                                    size_t size, uint32_t alignment);
 
+		std::list<VulkanMemoryBlock>::iterator FindBlock(VulkanMemoryMarker marker);
+		std::list<VulkanMemoryBlock>::iterator FindFirstFreeBlockRangeLeft(std::list<VulkanMemoryBlock>::iterator iter);
+		std::list<VulkanMemoryBlock>::iterator FindFirstFreeBlockRangeRight(std::list<VulkanMemoryBlock>::iterator iter);
+
 		std::list<VulkanMemoryBlock> memoryBlocks;
 		VkDeviceMemory deviceMemory;
 		size_t allocationSize{0};
