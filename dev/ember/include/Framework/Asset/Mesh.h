@@ -3,7 +3,8 @@
 #include "Core/Util.h"
 #include "Framework/Asset/Vertex.h"
 
-#include <Vec.hpp>
+#include "Vec.hpp"
+#include "Shape.h"
 
 #include <cstdint>
 #include <functional>
@@ -79,6 +80,35 @@ namespace ember {
 
 		uint32_t GetAttributesMask() const;
 
+		const numa::AABB& GetObjectAABB() const;
+
+		numa::AABB ComputeWorldAABBApproximate(const numa::Mat4& world) const;
+		numa::AABB ComputeWorldAABBPrecise(const numa::Mat4& world) const;
+
+		numa::OBB ComputeWorldOBB(const numa::Mat4& world) const;
+
+		void SetObjectAABBPadding(float padding);
+		void SetObjectAABBPadding(const numa::Vec3& padding);
+
+		void SetVertexCount(size_t vertexCount);
+		size_t GetVertexCount() const;
+
+		void SetIndexCount(size_t indexCount);
+		size_t GetIndexCount() const;
+
+		uint32_t GetVertexStride() const;
+
+		void SetMeshTopology(MeshTopology meshTopology);
+		MeshTopology GetMeshTopology() const;
+
+		void SetCullBackFaceState(bool cullBackFaces);
+		bool CullBackFaces() const;
+
+		void SetIndexFormat(IndexFormat format);
+		IndexFormat GetIndexFormat() const;
+
+		uint32_t GetMeshId() const;
+
 		void MakeDynamic();
 		void MakeStatic();
 
@@ -110,7 +140,43 @@ namespace ember {
 		void ReportIncompleteIndices(const std::vector<uint32_t>& incompleteIndices);
 
 		void ComputeObjectAABB();
-		void ApplyLocalAABBPadding(numa::Vec3& min, numa::Vec3& max) const;
+		void ApplyObjectAABBPadding(numa::Vec3& min, numa::Vec3& max) const;
+
+		// I/O methods.
+
+		bool FormatConversionPossible(VertexAttribFormat srcFormat,
+			                          VertexAttribFormat destFormat) const;
+		bool DimensionalityConversionPossible(const VertexAttribDescriptor& srcDesc,
+			                                  const VertexAttribDescriptor& destDesc) const;
+		bool WritePossible(const VertexAttribDescriptor& srcDesc,
+			               const VertexAttribDescriptor& destDesc) const;
+
+		void UpdateGpuMeshVertexData() const;
+		void UpdateGpuMeshIndexData() const;
+
+		void ConstructMeshVertexBuffer(char* vb, uint32_t vertexCount,
+			                           const std::vector<VertexAttribDescriptor>& layout) const;
+		void ConstructMeshIndexBuffer(char* ib, uint32_t indexCount,
+			                          IndexFormat ibFormat) const;
+
+		void UpdateGpuMeshSettings() const;
+
+		void WriteSrcAttribToDstBuffer(const VertexAttribDescriptor& dstAttribDesc, char* dstBuffer, uint32_t vert) const;
+		void WriteSrcAttribToDstBuffer(const VertexAttribDescriptor& srcAttribDesc, const char* srcBuffer,
+			                           const VertexAttribDescriptor& dstAttribDesc, char* dstBuffer) const;
+
+		void WriteSrcIndexToDstBuffer(IndexFormat indexFormat, char* dstBuffer, uint32_t index) const;
+
+		void SetInternalVertexAttribArrayData(const void* src, uint32_t vertexCount,
+			                                  const std::vector<VertexAttribDescriptor>& layout);
+
+		void WriteSrcDataToAttribArray(const VertexAttribDescriptor& srcAttribDesc,
+			                           uint32_t vert, const char* srcBuffer);
+		void WriteSrcDataToAttribArray(const VertexAttribDescriptor& srcAttribDesc, const char* srcBuffer,
+			                           const VertexAttribDescriptor& dstAttribDesc, char* dstBuffer);
+
+		void SendGpuMeshVertexBufferData(const void* vb) const;
+		void SendGpuMeshIndexBufferData(const void* ib) const;
 
 		std::unordered_map<VertexAttribChannel, VertexAttribDescriptor> vertAttribLayout;
 
@@ -126,13 +192,16 @@ namespace ember {
 
 		std::vector<uint32_t> indices;
 
-		AABB objectAABB{};
+		numa::AABB objectAABB{};
 		numa::Vec3 aabbPadding{0.0f};
 
 		IndexFormat indexFormat{IndexFormat::UINT32};
 		MeshTopology meshTopology{MeshTopology::TRIANGLES};
 
+		uint32_t meshId{0};
+
 		bool dynamic{false};
+		bool cullBackFaces{true};
 	};
 
 }

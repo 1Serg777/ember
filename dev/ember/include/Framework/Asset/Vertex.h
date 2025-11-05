@@ -46,13 +46,6 @@ namespace ember {
 
 	uint32_t CalculateVertexStride(const std::vector<VertexAttribDescriptor>& vertAttribLayout);
 
-	// Why is it here? Shouldn't it be in the Mesh class?
-	template <typename SrcType, typename DstType>
-	void WriteSrcToDst(const SrcType* src, DstType* dst) {
-		DstType value = static_cast<DstType>(*src);
-		*dst = value;
-	}
-
 	// P - position.
 	struct VertexP {
 		numa::Vec3 vertexPosition;
