@@ -38,8 +38,11 @@ namespace ember {
 
 		// GPU Resources
 
-		virtual void CreateMeshGpuResource(Mesh* mesh) = 0;
-		virtual void UploadMeshGpuResource(Mesh* mesh) = 0;
+		virtual void CreateMeshGpuResource(const Mesh* mesh) = 0;
+		virtual void DeleteMeshGpuResource(const Mesh* mesh) = 0;
+		virtual void OnMeshSettingsChange(const Mesh* mesh) = 0;
+		virtual void OnMeshVertexBufferUpdate(const Mesh* mesh) = 0;
+		virtual void OnMeshIndexBufferUpdate(const Mesh* mesh) = 0;
 	};
 
 	GpuApiType ChooseGpuApi(const CmdLineArgs& cmdLineArgs);
@@ -52,7 +55,7 @@ namespace ember {
 
 	// GPU Resources
 
-	void CreateMeshGpuResource(Mesh* mesh);
-	void UploadMeshGpuResource(Mesh* mesh);
+	// void CreateMeshGpuResource(Mesh* mesh);
+	// void UploadMeshGpuResource(Mesh* mesh);
 
 }

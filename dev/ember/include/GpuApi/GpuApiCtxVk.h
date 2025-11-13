@@ -153,8 +153,11 @@ namespace ember {
 
 		// GPU Resources
 
-		void CreateMeshGpuResource(Mesh* mesh) override;
-		void UploadMeshGpuResource(Mesh* mesh) override;
+		void CreateMeshGpuResource(const Mesh* mesh) override;
+		void DeleteMeshGpuResource(const Mesh* mesh) override;
+		void OnMeshSettingsChange(const Mesh* mesh) override;
+		void OnMeshVertexBufferUpdate(const Mesh* mesh) override;
+		void OnMeshIndexBufferUpdate(const Mesh* mesh) override;
 
 		const SettingsVk& GetSettingsVk() const;
 

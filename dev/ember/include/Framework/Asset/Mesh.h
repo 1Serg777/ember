@@ -23,6 +23,23 @@ namespace ember {
 		PATCHES,
 	};
 
+	struct MeshStat {
+		bool IsIndexed() const;
+
+		VertexBufferInfo vbInfo{};
+		IndexBufferInfo ibInfo{};
+
+		MeshTopology meshTopology{};
+
+		uint32_t attributesMask{ 0 };
+
+		uint32_t patchVertexCount{}; // tessellation, if used
+
+		bool isDynamic{ false };
+		bool isTessellated{ false };
+		bool cullBackFaces{ true };
+	};
+
 	uint32_t GetIndexMultiplicity(MeshTopology meshTopology);
 
 	class Mesh {
@@ -59,6 +76,13 @@ namespace ember {
 		void SetIndices(const std::vector<uint32_t>& indices);
 		void ResetIndices();
 		bool HasIndices() const;
+
+		std::vector<char> ConstructMeshVertexBuffer() const;
+		std::vector<char> ConstructMeshIndexBuffer() const;
+
+		MeshStat GetMeshStat() const;
+		VertexBufferInfo GetVertexBufferInfo() const;
+		IndexBufferInfo GetIndexBufferInfo() const;
 
 		void SetVertexAttribDescriptor(const VertexAttribDescriptor& vertAttribDesc);
 		void ResetVertexAttribDescriptor(VertexAttribChannel channel);

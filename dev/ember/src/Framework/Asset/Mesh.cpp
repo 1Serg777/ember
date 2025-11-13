@@ -29,8 +29,10 @@ namespace ember {
 	}
 
 	Mesh::Mesh() {
+		GetCurrentGpuApiCtx()->CreateMeshGpuResource(this);
 	}
 	Mesh::~Mesh() {
+		GetCurrentGpuApiCtx()->DeleteMeshGpuResource(this);
 	}
 
 	void Mesh::SetPositions(const std::vector<numa::Vec3>& positions) {
@@ -194,6 +196,54 @@ namespace ember {
 	}
 	bool Mesh::HasIndices() const {
 		return indices.size();
+	}
+
+	std::vector<char> Mesh::ConstructMeshVertexBuffer() const {
+		std::vector<VertexAttribDescriptor> vertexAttribLayout = GetVertexAttribLayout();
+		uint32_t vertexStride = CalculateVertexStride(vertexAttribLayout);
+		uint32_t vertexCount = static_cast<uint32_t>(GetVertexCount());
+		size_t vertexBufferSizeInBytes{ static_cast<size_t>(vertexCount) * vertexStride };
+
+		std::vector<char> vertexBuffer(vertexBufferSizeInBytes);
+		char* vb = vertexBuffer.data();
+		ConstructMeshVertexBuffer(vb, vertexCount, vertexAttribLayout);
+		return vertexBuffer;
+	}
+	std::vector<char> Mesh::ConstructMeshIndexBuffer() const {
+		uint32_t indexCount = static_cast<uint32_t>(GetIndexCount());
+		uint32_t indexFormatSize = GetIndexFormatSizeInBytes(indexFormat);
+		size_t indexBufferSizeInBytes{ static_cast<size_t>(indexCount) * indexFormatSize };
+
+		std::vector<char> indexBuffer(indexBufferSizeInBytes);
+		char* ib = indexBuffer.data();
+		ConstructMeshIndexBuffer(ib, indexCount, indexFormat);
+		return indexBuffer;
+	}
+
+	MeshStat Mesh::GetMeshStat() const {
+		MeshStat meshStat{};
+		meshStat.vbInfo = GetVertexBufferInfo();
+		meshStat.ibInfo = GetIndexBufferInfo();
+		meshStat.meshTopology = GetMeshTopology();
+		meshStat.attributesMask = GetAttributesMask();
+		meshStat.patchVertexCount = GetPatchVertexCount();
+		meshStat.isDynamic = IsMeshDynamic();
+		meshStat.isTessellated = IsMeshTessellated();
+		meshStat.cullBackFaces = CullBackFaces();
+		return meshStat;
+	}
+	VertexBufferInfo Mesh::GetVertexBufferInfo() const {
+		VertexBufferInfo vbInfo{};
+		vbInfo.vertexAttribLayout = GetVertexAttribLayout();
+		vbInfo.vertexCount = static_cast<uint32_t>(GetVertexCount());
+		vbInfo.vertexStride = CalculateVertexStride(vbInfo.vertexAttribLayout);
+		return vbInfo;
+	}
+	IndexBufferInfo Mesh::GetIndexBufferInfo() const {
+		IndexBufferInfo ibInfo{};
+		ibInfo.indexCount = static_cast<uint32_t>(GetIndexCount());
+		ibInfo.indexFormat = GetIndexFormat();
+		return ibInfo;
 	}
 
 	void Mesh::SetVertexAttribDescriptor(const VertexAttribDescriptor& vertAttribDesc) {
@@ -645,27 +695,10 @@ namespace ember {
 	}
 
 	void Mesh::UpdateGpuMeshVertexData() const {
-		std::vector<VertexAttribDescriptor> vertexAttribLayout = GetVertexAttribLayout();
-		uint32_t vertexStride = CalculateVertexStride(vertexAttribLayout);
-		uint32_t vertexCount = static_cast<uint32_t>(GetVertexCount());
-		size_t vertexBufferSizeInBytes{static_cast<size_t>(vertexCount) * vertexStride};
-
-		std::vector<char> vertexBuffer(vertexBufferSizeInBytes);
-		char* vb = vertexBuffer.data();
-		ConstructMeshVertexBuffer(vb, vertexCount, vertexAttribLayout);
-		// Send this to the GPU
-		SendGpuMeshVertexBufferData(vb);
+		GetCurrentGpuApiCtx()->OnMeshVertexBufferUpdate(this);
 	}
 	void Mesh::UpdateGpuMeshIndexData() const {
-		uint32_t indexCount = static_cast<uint32_t>(GetIndexCount());
-		uint32_t indexFormatSize = GetIndexFormatSizeInBytes(indexFormat);
-		size_t indexBufferSizeInBytes{static_cast<size_t>(indexCount) * indexFormatSize};
-
-		std::vector<char> indexBuffer(indexBufferSizeInBytes);
-		char* ib = indexBuffer.data();
-		ConstructMeshIndexBuffer(ib, indexCount, indexFormat);
-		// Send this to the GPU
-		SendGpuMeshIndexBufferData(ib);
+		GetCurrentGpuApiCtx()->OnMeshIndexBufferUpdate(this);
 	}
 
 	void Mesh::ConstructMeshVertexBuffer(char* vb, uint32_t vertexCount,
@@ -687,8 +720,7 @@ namespace ember {
 	}
 
 	void Mesh::UpdateGpuMeshSettings() const {
-		// TODO
-		// coreGlobal.gpuResourceDatabase->UpdateGpuMeshSettings(meshId);
+		GetCurrentGpuApiCtx()->OnMeshSettingsChange(this);
 	}
 
 	void Mesh::WriteSrcAttribToDstBuffer(const VertexAttribDescriptor& dstAttribDesc, char* dstBuffer, uint32_t vert) const {

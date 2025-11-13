@@ -109,10 +109,19 @@ namespace ember {
 		// TODO
 	}
 
-	void GlfwOglCtx::CreateMeshGpuResource(Mesh* mesh) {
+	void GlfwOglCtx::CreateMeshGpuResource(const Mesh* mesh) {
 		// TODO
 	}
-	void GlfwOglCtx::UploadMeshGpuResource(Mesh* mesh) {
+	void GlfwOglCtx::DeleteMeshGpuResource(const Mesh* mesh) {
+		// TODO
+	}
+	void GlfwOglCtx::OnMeshSettingsChange(const Mesh* mesh) {
+		// TODO
+	}
+	void GlfwOglCtx::OnMeshVertexBufferUpdate(const Mesh* mesh) {
+		// TODO
+	}
+	void GlfwOglCtx::OnMeshIndexBufferUpdate(const Mesh* mesh) {
 		// TODO
 	}
 

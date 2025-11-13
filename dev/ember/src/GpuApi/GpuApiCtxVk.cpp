@@ -268,10 +268,25 @@ namespace ember {
 			ResizeSwapchain();
 	}
 
-	void GpuApiCtxVk::CreateMeshGpuResource(Mesh* mesh) {
+	void GpuApiCtxVk::CreateMeshGpuResource(const Mesh* mesh) {
 		// TODO
 	}
-	void GpuApiCtxVk::UploadMeshGpuResource(Mesh* mesh) {
+	void GpuApiCtxVk::DeleteMeshGpuResource(const Mesh* mesh) {
+		// TODO
+	}
+	void GpuApiCtxVk::OnMeshSettingsChange(const Mesh* mesh) {
+		// TODO
+	}
+	void GpuApiCtxVk::OnMeshVertexBufferUpdate(const Mesh* mesh) {
+		// 1. Update the vertex buffer data right away
+		std::vector<char> vertexBuffer = mesh->ConstructMeshVertexBuffer();
+		// 2. Notify about the change, but postpone the operation
+		// TODO
+	}
+	void GpuApiCtxVk::OnMeshIndexBufferUpdate(const Mesh* mesh) {
+		// 1. Update the index buffer data right away
+		std::vector<char> indexBuffer = mesh->ConstructMeshIndexBuffer();
+		// 2. Notify about the change, but postpone the operation
 		// TODO
 	}
 

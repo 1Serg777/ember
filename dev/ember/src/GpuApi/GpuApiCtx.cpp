@@ -57,11 +57,13 @@ namespace ember {
 		return currentGpuApiCtx;
 	}
 
+	/*
 	void CreateMeshGpuResource(Mesh* mesh) {
 		currentGpuApiCtx->CreateMeshGpuResource(mesh);
 	}
 	void UploadMeshGpuResource(Mesh* mesh) {
 		currentGpuApiCtx->UploadMeshGpuResource(mesh);
 	}
+	*/
 
 }

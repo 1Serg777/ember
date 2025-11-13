@@ -119,8 +119,8 @@ namespace ember {
 
 	struct VertexBufferInfo {
 		std::vector<VertexAttribDescriptor> vertexAttribLayout;
-		uint32_t vertexCount{ 0 };
-		uint32_t vertexStride{ 0 };
+		uint32_t vertexCount{0};
+		uint32_t vertexStride{0};
 	};
 
 	enum class IndexFormat {
