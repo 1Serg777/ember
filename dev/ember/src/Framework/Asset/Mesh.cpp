@@ -490,16 +490,44 @@ namespace ember {
 	}
 
 	void Mesh::MakeDynamic() {
-		this->dynamic = true;
+		this->isDynamic = true;
 		OnMeshDataUpdated();
 	}
 	void Mesh::MakeStatic() {
-		this->dynamic = false;
+		this->isDynamic = false;
 		OnMeshDataUpdated();
 	}
 
-	bool Mesh::IsDynamic() const {
-		return dynamic;
+	bool Mesh::IsMeshDynamic() const {
+		return isDynamic;
+	}
+	bool Mesh::IsMeshTessellated() const {
+		return isTesselated;
+	}
+	uint32_t Mesh::GetPatchVertexCount() const {
+		return patchVertexCount;
+	}
+
+	void Mesh::SetOnGpuMeshDataAutoUpdate(bool autoUpdate) {
+		this->autoUpdateGpuMeshData = autoUpdate;
+	}
+	void Mesh::OnGpuMeshDataUpdate() {
+		/*
+		if (!autoUpdateGpuMeshData) {
+			// Becomes 'true'
+			// this->autoUpdateGpuMeshData = !this->autoUpdateGpuMeshData;
+			OnMeshDataUpdated();
+			// Becomes 'false' again
+			// this->autoUpdateGpuMeshData = !this->autoUpdateGpuMeshData;
+		}
+		// We could do without the else branch down below, because
+		// the assumption is that after every call that potentially alters the internal data or settings,
+		// the CPU Mesh data and GPU Mesh data are in sync when the 'autoUpdateGpuMeshData' flag is 'true'.
+		else {
+			OnMeshDataUpdated();
+		}
+		*/
+		OnMeshDataUpdated();
 	}
 
 	void Mesh::SendMeshChangedEventNotifications() const {

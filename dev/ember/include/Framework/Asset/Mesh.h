@@ -136,7 +136,12 @@ namespace ember {
 		void MakeDynamic();
 		void MakeStatic();
 
-		bool IsDynamic() const;
+		bool IsMeshDynamic() const;
+		bool IsMeshTessellated() const;
+		uint32_t GetPatchVertexCount() const;
+
+		void SetOnGpuMeshDataAutoUpdate(bool autoUpdate);
+		void OnGpuMeshDataUpdate();
 
 	private:
 		void SendMeshChangedEventNotifications() const;
@@ -223,9 +228,14 @@ namespace ember {
 		MeshTopology meshTopology{MeshTopology::TRIANGLES};
 
 		uint32_t meshId{0};
+		uint32_t patchVertexCount{0}; // tessellation, if used
 
-		bool dynamic{false};
+		bool isIndexed{false};
+		bool isDynamic{false};
 		bool cullBackFaces{true};
+		bool isTesselated{false};
+
+		bool autoUpdateGpuMeshData{true};
 	};
 
 }
