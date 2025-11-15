@@ -202,7 +202,7 @@ namespace ember {
 		std::vector<VertexAttribDescriptor> vertexAttribLayout = GetVertexAttribLayout();
 		uint32_t vertexStride = CalculateVertexStride(vertexAttribLayout);
 		uint32_t vertexCount = static_cast<uint32_t>(GetVertexCount());
-		size_t vertexBufferSizeInBytes{ static_cast<size_t>(vertexCount) * vertexStride };
+		size_t vertexBufferSizeInBytes{static_cast<size_t>(vertexCount) * vertexStride};
 
 		std::vector<char> vertexBuffer(vertexBufferSizeInBytes);
 		char* vb = vertexBuffer.data();
@@ -212,7 +212,7 @@ namespace ember {
 	std::vector<char> Mesh::ConstructMeshIndexBuffer() const {
 		uint32_t indexCount = static_cast<uint32_t>(GetIndexCount());
 		uint32_t indexFormatSize = GetIndexFormatSizeInBytes(indexFormat);
-		size_t indexBufferSizeInBytes{ static_cast<size_t>(indexCount) * indexFormatSize };
+		size_t indexBufferSizeInBytes{static_cast<size_t>(indexCount) * indexFormatSize};
 
 		std::vector<char> indexBuffer(indexBufferSizeInBytes);
 		char* ib = indexBuffer.data();
@@ -228,8 +228,8 @@ namespace ember {
 		meshStat.attributesMask = GetAttributesMask();
 		meshStat.patchVertexCount = GetPatchVertexCount();
 		meshStat.isDynamic = IsMeshDynamic();
-		meshStat.isTessellated = IsMeshTessellated();
 		meshStat.cullBackFaces = CullBackFaces();
+		meshStat.isTessellated = IsMeshTessellated();
 		return meshStat;
 	}
 	VertexBufferInfo Mesh::GetVertexBufferInfo() const {

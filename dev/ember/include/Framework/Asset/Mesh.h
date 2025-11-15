@@ -42,6 +42,13 @@ namespace ember {
 
 	uint32_t GetIndexMultiplicity(MeshTopology meshTopology);
 
+	class MeshEventNotifier {
+	public:
+		virtual void OnVertexBufferUpdate() = 0;
+		virtual void OnIndexBufferUpdate() = 0;
+		virtual void OnMeshSettingsUpdate() = 0;
+	};
+
 	class Mesh {
 	public:
 		Mesh();
